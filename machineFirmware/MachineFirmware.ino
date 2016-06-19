@@ -271,7 +271,7 @@ void servoWrite(float shoulderServoAngle, float elbowServoAngle, float penServoA
   // Write Value to servo
   penServo.writeMicroseconds(penServoAngle / 180 * servoRangeMicroseconds + servoMinMicroseconds);
 
-  //Calculate time when move will completein 
+  //Calculate time when move will complete 
   penMoveDoneTime = millis() + abs(lastPenServoAngle - penServoAngle) * penServoMoveRate / 1000;
   lastPenServoAngle = penServoAngle;
 }
