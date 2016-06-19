@@ -134,11 +134,9 @@ void loop(void) {
         Serial.println(elbowServoAngle);
         servoWrite(shoulderServoAngle, elbowServoAngle, zValue / 1000 * 180);
         digitalWrite(LED_PIN, LOW);
-
-        //delay(5);//20
       }
     }
-    // stuck in a while loop
+    // Client has disconnected
     Serial.println("Client disconnected.");
     client.stop();
 
