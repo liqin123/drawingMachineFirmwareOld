@@ -134,11 +134,9 @@ void loop(void) {
         Serial.println(elbowServoAngle);
         servoWrite(shoulderServoAngle, elbowServoAngle, zValue / 1000 * 180);
         digitalWrite(LED_PIN, LOW);
-
-        //delay(5);//20
       }
     }
-    // stuck in a while loop
+    // Client has disconnected
     Serial.println("Client disconnected.");
     client.stop();
 
@@ -273,7 +271,7 @@ void servoWrite(float shoulderServoAngle, float elbowServoAngle, float penServoA
   // Write Value to servo
   penServo.writeMicroseconds(penServoAngle / 180 * servoRangeMicroseconds + servoMinMicroseconds);
 
-  //Calculate when move will complete
+  //Calculate time when move will complete 
   penMoveDoneTime = millis() + abs(lastPenServoAngle - penServoAngle) * penServoMoveRate / 1000;
   lastPenServoAngle = penServoAngle;
 }
