@@ -5,7 +5,7 @@ const int servoPin = 5;
 const int minMicros = 690;
 const int maxMicros = 2520;
 
-int numberOfSteps = 18;
+int numberOfSteps = 19;
 
 void setup() {
 
@@ -17,19 +17,18 @@ void setup() {
 void loop() {
 
   Serial.println("Starting test.");
-  Serial.print(String("How many steps? <") += String(numberOfSteps) += String(">: "));
-
-  int x;
-  while (Serial.available() == 0)
+  servoUnderTest.writeMicroseconds(minMicros);
+  delay(1000);
+  for(int i = 0; i <= numberOfSteps; i++)
   {
-    x = Serial.parseInt();
+    int thisMicros = minMicros + i * (maxMicros - minMicros) / numberOfSteps;
+    Serial.println(String("Step: ") += String(i) += String(" Micros: ") += String(thisMicros));
+    servoUnderTest.writeMicroseconds(thisMicros);
+    delay(6000);
   }
-
-  Serial.println(String("Number was: ") += String(x));
-
-  for (int i = 0; i < numberOfSteps; i++)
+  Serial.println("All Done.");
+  while(1)
   {
-    Serial.println(i);
+    delay(1000);
   }
-
 }
