@@ -18,10 +18,12 @@ void loop() {
 
   Serial.println("Starting test.");
   servoUnderTest.writeMicroseconds(minMicros);
-  delay(1000);
+  delay(600);
+  servoUnderTest.writeMicroseconds(maxMicros);
+  delay(5000);
   for(int i = 0; i <= numberOfSteps; i++)
   {
-    int thisMicros = minMicros + i * (maxMicros - minMicros) / numberOfSteps;
+    int thisMicros = maxMicros - i * (maxMicros - minMicros) / numberOfSteps;
     Serial.println(String("Step: ") += String(i) += String(" Micros: ") += String(thisMicros));
     servoUnderTest.writeMicroseconds(thisMicros);
     delay(6000);
