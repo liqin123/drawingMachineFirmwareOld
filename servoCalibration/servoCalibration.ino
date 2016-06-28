@@ -2,35 +2,75 @@
 
 Servo servoUnderTest;
 const int servoPin = 5;
-const int minMicros = 690;
-const int maxMicros = 2520;
+const int buttonPin = 12;
+const int minMinMicros = 500;
+const int maxMinMicros = 800;
+const int minMaxMicros = 2000;
+const int maxMaxMicros = 2700;
 
-int numberOfSteps = 19;
+int numberOfSteps = 18;
+unsigned long buttonDebounceTimer;
 
-void setup() {
+void setup() 
+{
 
   Serial.begin(115200);
+  pinMode(buttonPin, INPUT);
   servoUnderTest.attach(servoPin);
 
 }
 
-void loop() {
+void loop() 
+{
 
   Serial.println("Starting test.");
-  servoUnderTest.writeMicroseconds(minMicros);
-  delay(600);
-  servoUnderTest.writeMicroseconds(maxMicros);
-  delay(5000);
-  for(int i = 0; i <= numberOfSteps; i++)
+  Serial.println("Move servo to far right");
+  int minMicros;
+  while (digitalRead(buttonPin) == 1)
   {
-    int thisMicros = maxMicros - i * (maxMicros - minMicros) / numberOfSteps;
+    minMicros = map(analogRead(A0), 1024, 0, minMinMicros, maxMinMicros);
+    servoUnderTest.writeMicroseconds(minMicros);
+    delay(100);
+  }
+  Serial.println(String("minMicros: ") += minMicros);
+  delay(500); //lazy switch debounce
+
+  Serial.println("Move servo to far left");
+  int maxMicros;
+  while (digitalRead(buttonPin) == 1)
+  {
+    maxMicros = map(analogRead(A0), 1024, 0, minMaxMicros, maxMaxMicros);
+    servoUnderTest.writeMicroseconds(maxMicros);
+    delay(100);
+  }
+
+  Serial.println(String("maxMicros: ") += maxMicros);
+  delay(500); //lazy switch debounce
+  waitForButton();
+  Serial.println("Starting calibration sequence");
+
+  servoUnderTest.writeMicroseconds(minMicros);
+  
+  for (int i = 0; i <= numberOfSteps; i++)
+  {
+    int thisMicros =  minMicros + i * (maxMicros - minMicros) / numberOfSteps;
     Serial.println(String("Step: ") += String(i) += String(" Micros: ") += String(thisMicros));
     servoUnderTest.writeMicroseconds(thisMicros);
-    delay(6000);
+     waitForButton();
   }
   Serial.println("All Done.");
-  while(1)
+  while (1)
   {
     delay(1000);
   }
 }
+
+void waitForButton()
+{
+  while(digitalRead(buttonPin) == 1 || millis() < buttonDebounceTimer)
+  {
+    delay(20);
+  }
+  buttonDebounceTimer = millis() + 500;
+}
+
