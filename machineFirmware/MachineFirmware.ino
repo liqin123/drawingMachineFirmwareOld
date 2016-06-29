@@ -30,8 +30,8 @@ const int shoulderServoMoveRate = 3000;
 const int elbowServoMoveRate = 3000;
 const int penServoMoveRate = 3000;
 
-const int maxReach = 1875; //relative to arm lenghth, where arm = 1000
-const int minReach = 750;
+const int maxReach = 1975; //relative to arm lenghth, where arm = 1000
+const int minReach = 410;
 
 // Variable to hold time in millis when the move will be completed
 unsigned long timeWhenMoveDone = 0;
