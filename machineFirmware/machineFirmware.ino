@@ -69,12 +69,17 @@ int armLength = 1000; //not actual length, just use 1000 to make user side hardw
 
 void setup(void) {
   Serial.begin(115200);
-  WiFi.begin(ssid, password);
-
+  
   initPins();
 
   //Lift pen
   penServo.writeMicroseconds(2300);
+
+  //Home Arm
+  computeArmAngles(1000, 1000);
+  servoWrite(shoulderServoAngle, elbowServoAngle, 0 / 1000 * 180);
+  
+  WiFi.begin(ssid, password);
 
   // Start TCP server.
   server.begin();
