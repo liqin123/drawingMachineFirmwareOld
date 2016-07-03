@@ -74,10 +74,10 @@ setUpCopy();
   size(800, 800);
   background(255, 255, 255);
   initRecord();
-preliftDelay = 0;
-postliftDelay = 0;
+preliftDelay = 50;
+postliftDelay = 700;
   
-  sendTimerDelay = 5;
+  sendTimerDelay = 50;
 simplifyData = 0;
   prop = 1000.0/armScreenLength;
   drawedges();

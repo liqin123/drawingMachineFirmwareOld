@@ -26,9 +26,9 @@ unsigned long elbowMoveDoneTime;
 unsigned long penMoveDoneTime;
 
 // Servo motion rates in us/degree
-const int shoulderServoMoveRate = 3000;
-const int elbowServoMoveRate = 3000;
-const int penServoMoveRate = 3000;
+const int shoulderServoMoveRate = 4000;
+const int elbowServoMoveRate = 4000;
+const int penServoMoveRate = 4000;
 
 const int maxReach = 1975; //relative to arm lenghth, where arm = 1000
 const int minReach = 410;
@@ -73,11 +73,11 @@ void setup(void) {
   initPins();
 
   //Lift pen
-  penServo.writeMicroseconds(2300);
+  //penServo.writeMicroseconds(2300);
 
   //Home Arm
   computeArmAngles(1000, 1000);
-  servoWrite(shoulderServoAngle, elbowServoAngle, 0 / 1000 * 180);
+  servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
   
   WiFi.begin(ssid, password);
 
