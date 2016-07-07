@@ -77,7 +77,7 @@ setUpCopy();
 preliftDelay = 50;
 postliftDelay = 700;
   
-  sendTimerDelay = 50;
+  sendTimerDelay = 30;
 simplifyData = 0;
   prop = 1000.0/armScreenLength;
   drawedges();
