@@ -5,7 +5,13 @@
 #include <Servo.h>
 //#include <ServoRob.h>
 
-const int LED_PIN = 2;
+const int RED_LED_PIN = 13;
+const int GREEN_LED_PIN = 14;
+const int BLUE_LED_PIN = 16;
+
+int led_colour = 0;
+
+const int SWITCH_PIN = 0;
 
 const float shoulderServoMin = 5;
 const float shoulderServoMax = 175;
@@ -38,13 +44,13 @@ unsigned long timeWhenMoveDone = 0;
 
 // Shoulder
 Servo shoulderServo;
-const int shoulderServoPin = 15;
+const int shoulderServoPin = 4; //15
 // Elbow
 Servo elbowServo;
-const int elbowServoPin = 13;
+const int elbowServoPin = 5;//13
 // Up/down
 Servo penServo;
-const int penServoPin = 5;
+const int penServoPin = 12;//5
 
 ///wifi
 //const char* ssid = "durrellphone";
@@ -69,7 +75,7 @@ int armLength = 1000; //not actual length, just use 1000 to make user side hardw
 
 void setup(void) {
   Serial.begin(115200);
-  
+
   initPins();
 
   //Lift pen
@@ -78,7 +84,7 @@ void setup(void) {
   //Home Arm
   computeArmAngles(1000, 1000);
   servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
-  
+
   WiFi.begin(ssid, password);
 
   // Start TCP server.
@@ -98,11 +104,35 @@ void loop(void) {
 
     while (client.connected())
     {
+      switch (led_colour) {
+        case 0  :
+          digitalWrite(RED_LED_PIN, HIGH);
+          digitalWrite(GREEN_LED_PIN, LOW);
+          digitalWrite(BLUE_LED_PIN, HIGH);
+          break;
+        case 1  :
+          digitalWrite(RED_LED_PIN, HIGH);
+          digitalWrite(GREEN_LED_PIN, HIGH);
+          digitalWrite(BLUE_LED_PIN, LOW);
+          break;
+        case 2  :
+          digitalWrite(RED_LED_PIN, LOW);
+          digitalWrite(GREEN_LED_PIN, HIGH);
+          digitalWrite(BLUE_LED_PIN, HIGH);
+          break;
+      }
+      if(digitalRead(SWITCH_PIN) == LOW)
+      {
+        if(led_colour++ == 3)
+        {
+          led_colour = 0;
+        }
+      }
+      String req = client.readStringUntil(';');
+
       if (client.available() )
       {
-        digitalWrite(LED_PIN, HIGH);
-        String req = client.readStringUntil(';');
-
+        //digitalWrite(RED_LED_PIN, HIGH);
         if (req[0] == 0)
         {
           // edit out  a null charecter
@@ -124,7 +154,7 @@ void loop(void) {
         }
 
         checkBounds(&xValue, &yValue, maxReach, minReach);
-        
+
         computeArmAngles(xValue, yValue);
 
         waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
@@ -138,7 +168,7 @@ void loop(void) {
         Serial.print(",");
         Serial.println(elbowServoAngle);
         servoWrite(shoulderServoAngle, elbowServoAngle, zValue / 1000 * 180);
-        digitalWrite(LED_PIN, LOW);
+        //digitalWrite(RED_LED_PIN, LOW);
       }
     }
     // Client has disconnected
@@ -158,10 +188,10 @@ void loop(void) {
   }
 }
 
-int checkBounds(float *xValue, float *yValue, int maxReach, int minReach)
+int checkBounds(float * xValue, float * yValue, int maxReach, int minReach)
 {
   int reach = sqrt(sq(* xValue) + sq(* yValue));
-  if(reach > maxReach)
+  if (reach > maxReach)
   {
     Serial.print("Max Reach Limit=");
     Serial.print(reach);
@@ -171,12 +201,12 @@ int checkBounds(float *xValue, float *yValue, int maxReach, int minReach)
     Serial.print(* xValue);
     Serial.print(",");
     Serial.println(* yValue);
-    (* xValue) = (*xValue) * maxReach/reach;
-    (* yValue) = (*yValue) * maxReach/reach;
+    (* xValue) = (*xValue) * maxReach / reach;
+    (* yValue) = (*yValue) * maxReach / reach;
     return (reach - maxReach);
   }
-  
-  if(reach < minReach)
+
+  if (reach < minReach)
   {
     Serial.print("Min Reach Limit=");
     Serial.print(reach);
@@ -186,13 +216,13 @@ int checkBounds(float *xValue, float *yValue, int maxReach, int minReach)
     Serial.print(* xValue);
     Serial.print(",");
     Serial.println(* yValue);
-    (* xValue) = (*xValue) * minReach/reach;
-    (* yValue) = (*yValue) * minReach/reach;
+    (* xValue) = (*xValue) * minReach / reach;
+    (* yValue) = (*yValue) * minReach / reach;
     return (minReach - reach);
   }
   return 0;
 }
-  
+
 void waitForServos(int shoulderMoveDoneTime, int elbowMoveDoneTime, int penMoveDoneTime)
 {
   unsigned long waitUntilTime = 0;
@@ -217,6 +247,10 @@ void waitForServos(int shoulderMoveDoneTime, int elbowMoveDoneTime, int penMoveD
     if (timeToWaitFor < 1000)
     {
       delay(timeToWaitFor);
+//      if(led_colour++ == 3)
+//      {
+//        led_colour = 0;
+//      }
     } else {
       Serial.println("Abnormally long wait!");
     }
@@ -276,7 +310,7 @@ void servoWrite(float shoulderServoAngle, float elbowServoAngle, float penServoA
   // Write Value to servo
   penServo.writeMicroseconds(penServoAngle / 180 * servoRangeMicroseconds + servoMinMicroseconds);
 
-  //Calculate time when move will complete 
+  //Calculate time when move will complete
   penMoveDoneTime = millis() + abs(lastPenServoAngle - penServoAngle) * penServoMoveRate / 1000;
   lastPenServoAngle = penServoAngle;
 }
@@ -347,8 +381,13 @@ void printWiFiStatus() {
 
 void initPins() {
 
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
+  pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(BLUE_LED_PIN, OUTPUT);
+  pinMode(SWITCH_PIN, INPUT);
+  //digitalWrite(RED_LED_PIN, LOW);
+  //digitalWrite(GREEN_LED_PIN, LOW);
+  //digitalWrite(BLUE_LED_PIN, LOW);
   shoulderServo.attach(shoulderServoPin);
   elbowServo.attach(elbowServoPin);
   penServo.attach(penServoPin);
