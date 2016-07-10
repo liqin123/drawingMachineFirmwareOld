@@ -106,24 +106,29 @@ void loop(void) {
     {
       switch (led_colour) {
         case 0  :
-          digitalWrite(RED_LED_PIN, HIGH);
-          digitalWrite(GREEN_LED_PIN, LOW);
-          digitalWrite(BLUE_LED_PIN, HIGH);
+          analogWrite(RED_LED_PIN, 1023);
+          analogWrite(GREEN_LED_PIN, 0);
+          analogWrite(BLUE_LED_PIN, 1023);
           break;
         case 1  :
-          digitalWrite(RED_LED_PIN, HIGH);
-          digitalWrite(GREEN_LED_PIN, HIGH);
-          digitalWrite(BLUE_LED_PIN, LOW);
+          analogWrite(RED_LED_PIN, 1023);
+          analogWrite(GREEN_LED_PIN, 1023);
+          analogWrite(BLUE_LED_PIN, 0);
           break;
         case 2  :
-          digitalWrite(RED_LED_PIN, LOW);
-          digitalWrite(GREEN_LED_PIN, HIGH);
-          digitalWrite(BLUE_LED_PIN, HIGH);
+          analogWrite(RED_LED_PIN, 0);
+          analogWrite(GREEN_LED_PIN, 1023);
+          analogWrite(BLUE_LED_PIN, 1023);
+          break;
+        case 3  :
+          analogWrite(RED_LED_PIN, 0);
+          analogWrite(GREEN_LED_PIN, 0);
+          analogWrite(BLUE_LED_PIN, 0);
           break;
       }
-      if(digitalRead(SWITCH_PIN) == LOW)
+      if (digitalRead(SWITCH_PIN) == LOW)
       {
-        if(led_colour++ == 3)
+        if (led_colour++ == 3)
         {
           led_colour = 0;
         }
@@ -247,10 +252,10 @@ void waitForServos(int shoulderMoveDoneTime, int elbowMoveDoneTime, int penMoveD
     if (timeToWaitFor < 1000)
     {
       delay(timeToWaitFor);
-//      if(led_colour++ == 3)
-//      {
-//        led_colour = 0;
-//      }
+      if (led_colour++ == 4)
+      {
+        led_colour = 0;
+      }
     } else {
       Serial.println("Abnormally long wait!");
     }
