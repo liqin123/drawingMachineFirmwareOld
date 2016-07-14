@@ -1,0 +1,318 @@
+<?xml version="1.0"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" initialize="init()" backgroundColor="white">
+    <mx:Script>
+        <![CDATA[
+            
+            import com.hurlant.util.Base64;
+            import com.hurlant.crypto.hash.HMAC;
+            import com.hurlant.crypto.hash.SHA1;
+            import mx.controls.Alert;
+            
+            private function init():void {
+                expirationYearTextInput.text = new Date().getFullYear().toString();
+                generatePolicy();
+            }
+            
+            private function generatePolicy():void {
+                var buffer:Array = new Array();
+                buffer.indents = 0;
+                
+                write(buffer, "{\n");
+                indent(buffer);
+                
+                    // expiration
+                    var mm:String = expirationMonthTextInput.text;
+                    var dd:String = expirationDayTextInput.text;
+                    var yyyy:String = expirationYearTextInput.text;
+                    if(!mm || !mm.match(/^\d{2}$/) ||
+                       !dd || !dd.match(/^\d{2}$/) ||
+                       !yyyy || !yyyy.match(/^\d{4}$/)
+                       ) {
+                        Alert.show("You must enter an expiration in the form:\n MM DD YYYY");
+                        return;
+                    }
+                    write(buffer, "'expiration': '");
+                    write(buffer, yyyy);
+                    write(buffer, "-");
+                    write(buffer, mm);
+                    write(buffer, "-");
+                    write(buffer, dd);
+                    write(buffer, "T12:00:00.000Z'");
+                    write(buffer, ",\n");
+                    
+                    // conditions
+                    write(buffer, "'conditions': [\n");
+                    indent(buffer);
+                    
+                        // bucket
+                        if(!bucketTextInput.text)
+                        {
+                            Alert.show("You must enter a 'bucket' condition!");
+                            return;
+                        }
+                        writeSimpleCondition(buffer, "bucket", bucketTextInput.text, true);
+                    
+                        // key
+                        if(!keyTextInput.text)
+                        {
+                            Alert.show("You must enter a 'key' condition!");
+                            return;
+                        }
+                        writeSimpleCondition(buffer, "key", keyTextInput.text, true);
+                        
+                        // acl
+                        if(aclComboBox.selectedItem && aclComboBox.selectedItem.data)
+                        {
+                            writeSimpleCondition(buffer, "acl", aclComboBox.selectedItem.data, true);
+                        }
+                        
+                        // Content-Type
+                        if(contentTypeTextInput.text) {
+                            writeSimpleCondition(buffer, "Content-Type", contentTypeTextInput.text, true);
+                        }
+
+                        // Filename
+                        /**
+                         * FileReference.Upload sends along the "Filename" form field.
+                         * The "Filename" form field contains the name of the local file being
+                         * uploaded.
+                         * 
+                         * See http://livedocs.adobe.com/flex/2/langref/flash/net/FileReference.html for more imformation
+                         * about the FileReference API.
+                         * 
+                         * Since there is no provided way to exclude this form field, and since
+                         * Amazon S3 POST interface requires that all form fields are handled by
+                         * the policy document, we must always add this 'starts-with' condition that 
+                         * allows ANY 'Filename' to be specified.  Removing this condition from your
+                         * policy will result in Adobe Flash clients not being able to POST to Amazon S3.
+                         */
+                        writeCondition(buffer, "starts-with", "$Filename", "", true);
+                        
+                        // success_action_status
+                        /**
+                         * Certain combinations of Flash player version and platform don't handle
+                         * HTTP responses with the header 'Content-Length: 0'.  These clients do not
+                         * dispatch completion or error events when such a response is received.
+                         * Therefore it is impossible to tell when the upload has completed or failed.
+                         * 
+                         * Flash clients should always set the success_action_status parameter to 201
+                         * so that Amazon S3 returns a response with Content-Length being non-zero.
+                         * The policy sent along with the POST MUST therefore contain a condition
+                         * enabling use of the success_action_status parameter with a value of 201.
+                         * 
+                         * There are many possible conditions satisfying the above requirements.
+                         * This policy generator adds one for you below.
+                         */
+                        writeCondition(buffer, "eq", "$success_action_status", "201", false);
+                        
+                    write(buffer, "\n");
+                    outdent(buffer);
+                    write(buffer, "]");
+                    
+                write(buffer, "\n");
+                outdent(buffer);
+                write(buffer, "}");
+                
+                policyTextArea.text = buffer.join("");
+            }
+            
+            private function write(buffer:Array, value:String):void {
+                if(buffer.length > 0) {
+                    var lastPush:String =  String(buffer[buffer.length-1]);
+                    if(lastPush.length && lastPush.charAt(lastPush.length - 1) == "\n") {
+                        writeIndents(buffer);
+                    }
+                }
+                buffer.push(value);
+            }
+            
+            private function indent(buffer:Array):void {
+                buffer.indents++;
+            }
+            
+            private function outdent(buffer:Array):void {
+                buffer.indents = Math.max(0, buffer.indents-1);
+            }
+            
+            private function writeIndents(buffer:Array):void {
+                for(var i:int=0;i<buffer.indents;i++) {
+                    buffer.push("    ");
+                }
+            }
+            
+            private function writeCondition(buffer:Array, type:String, name:String, value:String, commaNewLine:Boolean):void {
+                write(buffer, "['");
+                    write(buffer, type);
+                write(buffer, "', '");
+                    write(buffer, name);
+                write(buffer, "', '");
+                    write(buffer, value);
+                write(buffer, "'");
+                write(buffer, "]");
+                if(commaNewLine) {
+                    write(buffer, ",\n");
+                }
+                
+            }
+            
+            private function writeSimpleCondition(buffer:Array, name:String, value:String, commaNewLine:Boolean):void {
+                write(buffer, "{'");
+                    write(buffer, name);
+                write(buffer, "': ");
+                write(buffer, "'");
+                    write(buffer, value);
+                write(buffer, "'");
+                write(buffer, "}");
+                if(commaNewLine) {
+                    write(buffer, ",\n");
+                }
+            }
+            
+            private function signPolicy():void {
+                var secretKey:String = secretKeyTextInput.text;
+                if(!secretKey)
+                {
+                    Alert.show("You must enter your AWS secret key!");
+                    return;
+                }
+                var unsignedPolicy:String = policyTextArea.text;    
+                if(!unsignedPolicy)
+                {
+                    Alert.show("You must enter a policy document!\n" +
+                        "Use the policy generator (following instructions for part A) " +
+                        "or author your own policy document in the text field labeled 'Policy'.");
+                    return;
+                }
+                var base64policy:String = Base64.encode(unsignedPolicy);
+                base64PolicyTextArea.text = base64policy;
+                signatureTextArea.text = generateSignature(base64policy, secretKey);
+            }
+            
+            private function generateSignature(data:String, secretKey:String):String {
+                
+                var secretKeyByteArray:ByteArray = new ByteArray();
+                secretKeyByteArray.writeUTFBytes(secretKey);
+                secretKeyByteArray.position = 0;
+                
+                var dataByteArray:ByteArray = new ByteArray();
+                dataByteArray.writeUTFBytes(data);
+                dataByteArray.position = 0;
+                
+                var hmac:HMAC = new HMAC(new SHA1());            
+                var signatureByteArray:ByteArray = hmac.compute(secretKeyByteArray, dataByteArray);
+                return Base64.encodeByteArray(signatureByteArray);
+            }
+            private function clearGeneratePolicyForm():void {
+                expirationMonthTextInput.text = "";
+                expirationDayTextInput.text = "";
+                expirationYearTextInput.text = "";
+                bucketTextInput.text = "";
+                keyTextInput.text = "";
+                aclComboBox.selectedItem = aclComboBoxNoneItem;
+                contentTypeTextInput.text = "";
+            }
+        ]]>
+    </mx:Script>
+    <mx:Text width="100%" fontSize="11">
+        <mx:htmlText>
+            <![CDATA[
+                <b>This application helps you to generate and sign an Amazon S3 policy document.</b><br />
+                
+                Before using this sample application, be sure to read the POST section of the Amazon S3
+                documentation available at:
+                
+                <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/">http://docs.amazonwebservices.com/AmazonS3/2006-03-01/</a> <br />
+                
+                <b>The first thing you need to do is generate a policy document. Instructions on how to do this
+                are in part A.  If you've already prepared a policy document and just need to sign it, skip to part B.</b><br />
+                
+                <b>Part A: Generating a policy document</b><br />
+                 Use the form on the left (labeled "Generate policy") to generate a policy document.
+                 Sample values have been filled in to help you.<br />
+                 &nbsp; <b>1.</b> Fill in the expiration date of your policy document.  This is required.<br />
+                 &nbsp; <b>2.</b> Fill in bucket and key constraints for your policy documents.  These are required.
+                 This sample application only allows you to define simple conditions.  If you need more complex conditions,
+                 you may edit the policy text field directly.<br />
+                 &nbsp; <b>3.</b> You may add optional ACL and Content-Type constraints to the policy.<br />
+                 &nbsp; <b>4.</b> Click the "Generate policy" button. Your generated policy document will appear in
+                 the text field labeled "Policy to Sign" (on the right).<br />
+                 
+                <b>Part B: Signing a policy document</b><br />
+                 Generate a policy document following the instructions outlined in part A.  Alternatively, you
+                 may author your own policy document and directly enter it into the text field labeled "Policy to Sign".<br />
+                 &nbsp; <b>2.</b> Enter your AWS secret key.<br />
+                 &nbsp; <b>3.</b> Click the "Sign policy" button. The Base64 encoding of your policy document and the
+                 signed policy document will appear in the text fields labeled "Base64 Encoded Policy" and "Signature",
+                 respectively.<br />
+            ]]>
+        </mx:htmlText>
+    </mx:Text>
+    <mx:HBox>
+        <mx:Box>
+            
+            <mx:Text width="100%" fontSize="14" fontWeight="bold" text="A: Generate policy" />
+            <mx:VBox>
+                <mx:HBox>
+                    <mx:Label text="Policy Expiration Date: " />
+                    
+                    <mx:HBox>
+                        <mx:Label text="MM:" />
+                        <mx:TextInput id="expirationMonthTextInput" width="30" text="12" />
+                    </mx:HBox>
+                    <mx:HBox>
+                        <mx:Label text="DD:" />
+                        <mx:TextInput id="expirationDayTextInput" width="30" text="31" />
+                    </mx:HBox>
+                    <mx:HBox>
+                        <mx:Label text="YYYY:" />
+                        <mx:TextInput id="expirationYearTextInput" width="60" />
+                    </mx:HBox>
+                </mx:HBox>
+            </mx:VBox>
+            <mx:HBox>
+                <mx:Label text="Bucket:" /><mx:TextInput id="bucketTextInput" text="testbucket" />
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="Key:" /><mx:TextInput id="keyTextInput" text="testimage.jpeg" />
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="ACL:" />
+                <mx:ComboBox id="aclComboBox" selectedIndex="0">
+                    <mx:ArrayCollection>
+                        <mx:Object label="public-read" data="public-read" />
+                        <mx:Object label="public-read-write" data="public-read-write" />
+                        <mx:Object label="authenticated-read" data="authenticated-read" />
+                        <mx:Object label="private" data="private" />
+                        <mx:Object label="none" data="" id="aclComboBoxNoneItem" />
+                    </mx:ArrayCollection>
+                </mx:ComboBox>
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="Content-Type:" /><mx:TextInput id="contentTypeTextInput" text="image/jpeg" />
+            </mx:HBox>
+            
+            <mx:HBox>
+                <mx:Button label="Generate policy" click="generatePolicy();"/>
+                <mx:Button label="Clear this form" click="clearGeneratePolicyForm();" />
+            </mx:HBox>
+            
+        </mx:Box>
+    
+        <mx:Box>
+            <mx:Text width="100%" fontSize="14" fontWeight="bold" text="B: Sign policy" />
+            
+            <mx:Label text="Policy to Sign:"/><mx:TextArea id="policyTextArea" width="400" height="100" />
+            
+            <mx:HBox>
+                <mx:Label text="Secret Key:" /><mx:TextInput id="secretKeyTextInput" />
+                <mx:Button label="Sign policy" click="signPolicy();"/>
+            </mx:HBox>
+            
+            <mx:Box>
+                <mx:Label text="Base64 Encoded Policy:" /><mx:TextArea id="base64PolicyTextArea" width="400" height="100" />
+                <mx:Label text="Signature:" /><mx:TextArea id="signatureTextArea" width="400" height="30" />
+            </mx:Box>
+    
+        </mx:Box>
+    </mx:HBox>
+</mx:Application>

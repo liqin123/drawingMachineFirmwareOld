@@ -1,0 +1,193 @@
+<?xml version="1.0"?>
+
+<!-- 
+
+    This software code is made available "AS IS" without warranties of any
+    kind.  You may copy, display, modify and redistribute the software
+    code either by itself or as incorporated into your code; provided that
+    you do not remove any proprietary notices.  Your use of this software
+    code is at your own risk and you waive any claim against Amazon
+    Digital Services, Inc. or its affiliates with respect to your use of
+    this software code. (c) 2006-2007 Amazon Digital Services, Inc. or its
+    affiliates.
+    
+-->
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" initialize="init()" backgroundColor="white">
+    <mx:Script>
+        <![CDATA[
+            import flash.errors.IOError;
+            import flash.events.Event;
+            import flash.net.FileReference;
+            import flash.utils.ByteArray;
+            import s3.flash.S3PostOptions;
+            import s3.flash.S3PostRequest;
+            import mx.controls.Alert;
+            
+            private var fileReference:FileReference;
+            private var request:S3PostRequest;
+            
+            private function init():void {
+            }
+            
+            private function browse():void {
+                this.fileReference = new FileReference();
+                    
+                // validate forms
+                if(!accessKeyIdTextInput.text) {
+                    Alert.show("You must enter your AWS access key id!");
+                    return;
+                }
+                if(!policyTextArea.text) {
+                    Alert.show("You must enter your Base64 encoded policy!");
+                    return;
+                }
+                if(!signatureTextArea.text) {
+                    Alert.show("You must enter the signature of your policy!");
+                    return;
+                }
+            
+                // setup file reference event handlers
+                fileReference.addEventListener(Event.CANCEL, function(event:Event):void {
+                    setProgress(0);
+                    writeLine("Upload cancelled");
+                });
+                
+                fileReference.addEventListener(Event.SELECT, function(event:Event):void {
+                    // at this point, a file has been selected
+                    
+                    // build a S3PostOptions object using the various input fields on the page
+                    var options:S3PostOptions = new S3PostOptions();
+                    if(secureCheckbox.selected) {
+                        options.secure = true;
+                    }
+                    if(aclComboBox.selectedItem && aclComboBox.selectedItem.data)
+                    {
+                        options.acl = aclComboBox.selectedItem.data;
+                    }
+                    if(contentTypeTextInput.text) {
+                        options.contentType = contentTypeTextInput.text;
+                    }
+                    options.policy = policyTextArea.text;
+                    options.signature = signatureTextArea.text;
+                    
+                    // do the post
+                    post(accessKeyIdTextInput.text, bucketTextInput.text, keyTextInput.text, options, fileReference);
+                });
+                
+                fileReference.browse();
+            }
+            
+            private function post(accessKeyId:String, bucket:String, key:String, options:S3PostOptions, fileReference:FileReference):void {
+                
+                // create the post request
+                this.request = new S3PostRequest(accessKeyId, bucket, key, options);
+                
+                // hook up the user interface
+                request.addEventListener(Event.OPEN, function(event:Event):void {
+                    setStatus("Uploading...");
+                    writeLine("Upload started: " + fileReference.name);
+                });
+                request.addEventListener(ProgressEvent.PROGRESS, function(event:ProgressEvent):void {
+                    setProgress(Math.floor(event.bytesLoaded/event.bytesTotal * 100));
+                });
+                request.addEventListener(IOErrorEvent.IO_ERROR, function(event:IOErrorEvent):void {
+                    setStatus("Upload error!");
+                    writeLine("An IO error occurred: " + event);
+                });
+                request.addEventListener(SecurityErrorEvent.SECURITY_ERROR, function(event:SecurityErrorEvent):void {
+                    setStatus("Upload error!");
+                    writeLine("A security error occurred: " + event);
+                });
+                request.addEventListener(DataEvent.UPLOAD_COMPLETE_DATA, function(event:Event):void {
+                    setStatus("Upload complete!");
+                    writeLine("Upload completed: " + event);
+                });
+                
+                try {
+                    // submit the post request
+                    request.upload(fileReference);
+                } catch(e:Error) {
+                    setStatus("Upload error!");
+                    writeLine("An error occurred: " + e);
+                    
+                }
+            }
+            
+            private function writeLine(text:String):void {
+                consoleTextArea.text += text + "\n";
+            }
+            
+            private function setStatus(text:String):void {
+                statusLabel.text = text;
+            }
+            
+            private function setProgress(percent:uint):void {
+                progressBar.setProgress(percent, 100);
+                progressBar.label = percent + "% uploaded";
+            }
+        ]]>
+    </mx:Script>
+    <mx:Text width="100%" fontSize="11">
+        <mx:htmlText>
+            <![CDATA[
+                <b>This application allows you to upload data to Amazon S3 using the POST API.</b><br />
+                
+                Before using this sample application, be sure to read the POST section of the Amazon S3
+                documentation available at:
+                
+                <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/">http://docs.amazonwebservices.com/AmazonS3/2006-03-01/</a> <br />
+                
+                <b>Directions:</b><br />
+                 &nbsp; <b>1.</b> Fill in your AWS access key id.  This is required.<br />
+                 &nbsp; <b>2.</b> If you want to connect to Amazon S3 using HTTPS, select the checkbox labeled "Use HTTPS?".<br />
+                 &nbsp; <b>3.</b> Fill in bucket and key that you want to upload to.  These are required.<br />
+                 &nbsp; <b>4.</b> You may optionally send ACL and Content-Type information for the object being uploaded.<br />
+                 &nbsp; <b>5.</b> Fill in a Base64 encoded policy document and the signature (using your AWS secret key) of that document.
+                 You may use the included S3PostSamplePolicyGenerator application to generate and sign an Amazon S3 policy document.<br />
+                 &nbsp; <b>6.</b> Click the "Browse for a file to upload" button and select a file to upload.
+                 After you have selected a file to upload, you will see the progress of your upload displayed via the progress bar.
+                 A message indicating success or failure will be displayed when your upload is complete.<br />
+            ]]>
+        </mx:htmlText>
+    </mx:Text>
+    <mx:HBox>
+        <mx:Box>
+            <mx:HBox>
+                <mx:Label text="Access Key Id:" /><mx:TextInput id="accessKeyIdTextInput" width="200" />
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="Use HTTPS?" /><mx:CheckBox id="secureCheckbox" />
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="Bucket:" /><mx:TextInput id="bucketTextInput" text="testbucket" />
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="Key:" /><mx:TextInput id="keyTextInput" text="testimage.jpeg" />
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="ACL:" />
+                <mx:ComboBox id="aclComboBox" selectedIndex="0">
+                    <mx:ArrayCollection>
+                        <mx:Object label="public-read" data="public-read" />
+                        <mx:Object label="public-read-write" data="public-read-write" />
+                        <mx:Object label="authenticated-read" data="authenticated-read" />
+                        <mx:Object label="private" data="private" />
+                        <mx:Object label="none" data="" id="aclComboBoxNoneItem" />
+                    </mx:ArrayCollection>
+                </mx:ComboBox>
+            </mx:HBox>
+            <mx:HBox>
+                <mx:Label text="Content-Type:" /><mx:TextInput id="contentTypeTextInput" text="image/jpeg" />
+            </mx:HBox>
+            <mx:Label text="Base 64 Encoded Policy:" /><mx:TextArea id="policyTextArea" width="400" height="100" />
+            <mx:Label text="Signature:" /><mx:TextArea id="signatureTextArea" width="400" height="30" />
+        </mx:Box>
+        <mx:Box>
+            <mx:Button id="browseButton" label="Browse for a file to upload" click="browse();"/>
+            <mx:ProgressBar id="progressBar" minimum="0" maximum="100" mode="manual" label="0% uploaded" labelPlacement="left" />
+            <mx:Label id="statusLabel" text="" fontSize="20" fontFamily="Verdana" fontAntiAliasType="advanced" fontWeight="bold" />
+        </mx:Box>
+    </mx:HBox>
+    <mx:Label text="Debug:" /><mx:TextArea id="consoleTextArea" width="640" height="200" />
+</mx:Application>
