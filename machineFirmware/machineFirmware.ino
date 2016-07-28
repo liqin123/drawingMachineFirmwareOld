@@ -8,7 +8,6 @@
 #include <WiFiManager.h>
 #include <Servo.h>
 #include <ESP8266HTTPClient.h>
-//#include <ServoRob.h>
 
 const byte DNS_PORT = 53;
 DNSServer dnsServer;
@@ -82,6 +81,8 @@ float elbowServoAngle;
 float lastShoulderAngle;
 float lastElbowAngle;
 
+long waitCounter = 0;
+
 int armLength = 1000; //not actual length, just use 1000 to make user side hardware independent
 
 void setup(void) {
@@ -89,13 +90,24 @@ void setup(void) {
 
   initPins();
 
-  liftAndHome();
+  //liftAndHome();
 
   Serial.println(ESP.getChipId());
+
+  //  WiFi.mode(WIFI_STA);
+  //
+  //  // Initiate connection with SSID and PSK
+  //  WiFi.begin(ssid, password);
+  //
+  //  // Blink LED while we wait for WiFi connection
+  //  while ( WiFi.status() != WL_CONNECTED ) {
+  //    delay(100);
+  //  }
+
   //  WiFi.begin(ssid, password);
 
-  ///Wifi AutoAP setup
-  wifiManager.setAPCallback(configModeCallback);
+  //Wifi AutoAP setup
+  //  wifiManager.setAPCallback(configModeCallback);
   if (!wifiManager.autoConnect()) {
     Serial.println("failed to connect and hit timeout");
     //reset and try again, or maybe put it to deep sleep
@@ -104,15 +116,16 @@ void setup(void) {
   }
 
   //Start a SoftAP...?
-  WiFi.softAP(APssid, APpassword);
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
-  //Start a proper DNS server as mDNS doesn't work in AP mode.
-  dnsServer.setTTL(300);
-  dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
-  dnsServer.start(DNS_PORT, "esp8266", apIP);
-  //Start mDNS
+  //    WiFi.softAP(APssid, APpassword);
+  //    IPAddress myIP = WiFi.softAPIP();
+  //    Serial.print("AP IP address: ");
+  //    Serial.println(myIP);
+  //    //Start a proper DNS server as mDNS doesn't work in AP mode.
+  //    dnsServer.setTTL(300);
+  //    dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
+  //    dnsServer.start(DNS_PORT, "esp8266", apIP);
+
+  //  //Start mDNS
   if (!MDNS.begin("esp8266")) {
     Serial.println("Error setting up MDNS responder!");
   } else {
@@ -121,6 +134,10 @@ void setup(void) {
   // Start TCP server.
   server.begin();
   Serial.println("Start");
+  //downloadAndDraw("www.robertpoll.com", "/client/files/pic_20.txt");
+  downloadAndDraw1("www.robertpoll.com", "client/files/pic_20.txt");
+  delay(2000);
+  //downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_20.txt");
 }
 
 void loop(void) {
@@ -140,7 +157,7 @@ void loop(void) {
       if (digitalRead(SWITCH_PIN) == LOW)
       {
         Serial.println("Resetting WiFi Settings");
-        wifiManager.resetSettings();
+        //        wifiManager.resetSettings();
       }
       String req = client.readStringUntil(';');
 
@@ -181,9 +198,57 @@ void loop(void) {
   }
 }
 
-
-
 int downloadAndDraw(String website, String path)
+{
+  WiFiClient client;
+  if ( !client.connect("robertpoll.com", 80) ) {
+    return false;
+  }
+
+  // Make an HTTP GET request
+  client.print("GET ");
+  client.print(path);
+  client.println(" HTTP/1.1");
+  client.print("Host: ");
+  client.println(website);
+  client.println("Connection: close");
+  client.println();
+
+  String thisLine = "";
+
+  while (true)
+  {
+    if ( client.available() ) {
+      char c = client.read();
+      thisLine += c;
+      if (c == '\n')
+      {
+        Serial.print(thisLine);
+        parseFileLine(thisLine);
+        fastMove(xValue, yValue, zValue);
+        thisLine = "";
+      }
+      yield();
+    } else {
+      Serial.println("waiting...");
+      waitCounter++;
+      delay(100);
+    }
+
+    // If the server has disconnected, stop the client and WiFi
+    if ( !client.connected() ) {
+      Serial.println();
+
+      // Close socket
+      client.stop();
+      Serial.printf("Finished AutoDrawing. waitCounter: %d secs\n", waitCounter / 10);
+      waitCounter = 0;
+      return (0);
+    }
+  }
+}
+
+int downloadAndDraw1(String website, String path)
 {
   HTTPClient http;
   String fullPath = "http://" + website + "/" + path;
@@ -203,31 +268,68 @@ int downloadAndDraw(String website, String path)
 
       // get tcp stream
       WiFiClient stream = http.getStream();
+      char c;
+      String thisLine;
 
-      // read all data from server
-      while (http.connected() && (len > 0 || len == -1)) {
-        // get available data size
-        size_t size = stream.available();
-        Serial.printf("Stream avail: %d\n", size);
-        yield();
-        if (size) {
-          //String thisLine = stream.readStringUntil('\n');
-          //Serial.println("reading char");
+      bool done = false;
+      while (! done)
+      {
+        if ( stream.available() ) {
           char c = stream.read();
-          Serial.print(c);
-//          String thisLine = "";
-//          while (c != '\n')
-//          {
-//            thisLine += c;
-//            c = stream.read();
-//            yield();
-//          }
-//          Serial.println(thisLine);
-//          parseFileLine(thisLine);
-//          fastMove(xValue, yValue, zValue);
-          delay(5);
+          thisLine += c;
+          if (c == '\n')
+          {
+            //Serial.print(thisLine);
+            parseFileLine(thisLine);
+            fastMove(xValue, yValue, zValue);
+            thisLine = "";
+          }
+          yield();
+        } else {
+          Serial.println("waiting...");
+          waitCounter++;
+          delay(100);
+        }
+
+        // If the server has disconnected, stop the client and WiFi
+        if ( !stream.connected() ) {
+          Serial.println();
+
+          // Close socket
+          stream.stop();
+          Serial.printf("Finished AutoDrawing. waitCounter: %d secs\n", waitCounter / 10);
+          done = true;
         }
       }
+
+
+
+      // read all data from server
+      //      while (http.connected() && (len > 0 || len == -1)) {
+      //        // get available data size
+      //        size_t size = stream.available();
+      //        Serial.printf("Stream avail: %d\n", size);
+      //        if (size)
+      //        {
+      //          yield();
+      //          //String thisLine = stream.readStringUntil('\n');
+      //
+      //          c = stream.read();
+      //          thisLine += c;
+      //          if (c == '\n')
+      //          {
+      //            Serial.print(thisLine);
+      //            thisLine = "";
+      //          }
+      //          yield();
+      //
+      //          //Serial.println(thisLine);
+      //          //parseFileLine(thisLine);
+      //          //fastMove(xValue, yValue, zValue);
+      //        } else {
+      //          delay(100);
+      //        }
+      //      }
     }
   }
   Serial.println("File Done..");
@@ -277,7 +379,7 @@ void doGesture(int gesture)
       break;
 
     case 10:
-      downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_20.txt");
+      downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", "/Durrell/pic_20.txt");
       break;
 
     case 11:
@@ -520,8 +622,8 @@ void waitForServos(int shoulderMoveDoneTime, int elbowMoveDoneTime, int penMoveD
   long timeToWaitFor = waitUntilTime - nowMillis;
   if (timeToWaitFor > 0)
   {
-    Serial.print("Waiting for ");
-    Serial.println(timeToWaitFor);
+    //Serial.print("Waiting for ");
+    //Serial.println(timeToWaitFor);
     if (timeToWaitFor < 1000)
     {
       delay(timeToWaitFor);
@@ -625,20 +727,20 @@ void computeArmAngles(float x, float y)
 void parseFileLine(String req) {
   int commaOffset = req.indexOf(',');
   xValue = req.substring(0, commaOffset).toFloat();
-  Serial.print("xValue: ");
-  Serial.println(xValue);
+  //Serial.print("xValue: ");
+  //Serial.println(xValue);
   req = req.substring(commaOffset + 1, req.length());
 
   commaOffset = req.indexOf(',');
   yValue = req.substring(0, commaOffset).toFloat();
-  Serial.print("yValue: ");
-  Serial.println(yValue);
+  //Serial.print("yValue: ");
+  //Serial.println(yValue);
   req = req.substring(commaOffset + 1, req.length());
 
   commaOffset = req.indexOf(',');
   zValue = req.substring(0, commaOffset).toFloat();
-  Serial.print("zValue: ");
-  Serial.println(zValue);
+  //Serial.print("zValue: ");
+  //Serial.println(zValue);
   yield();
 }
 
@@ -679,11 +781,11 @@ void printWiFiStatus() {
 
 void initPins() {
 
-//  pinMode(RED_LED_PIN, OUTPUT);
-//  pinMode(GREEN_LED_PIN, OUTPUT);
-//  pinMode(BLUE_LED_PIN, OUTPUT);
-//  pinMode(SWITCH_PIN, INPUT);
-//  ledColour(0);
+  //  pinMode(RED_LED_PIN, OUTPUT);
+  //  pinMode(GREEN_LED_PIN, OUTPUT);
+  //  pinMode(BLUE_LED_PIN, OUTPUT);
+  //  pinMode(SWITCH_PIN, INPUT);
+  //  ledColour(0);
   penServo.attach(penServoPin);
   shoulderServo.attach(shoulderServoPin);
   elbowServo.attach(elbowServoPin);
