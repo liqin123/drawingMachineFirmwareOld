@@ -8,6 +8,10 @@
 #include <WiFiManager.h>
 #include <Servo.h>
 #include <ESP8266HTTPClient.h>
+#include <EEPROM.h>
+
+int eepromAutoFlag = 20;
+int eepromAutoCount = 24;
 
 const byte DNS_PORT = 53;
 DNSServer dnsServer;
@@ -42,9 +46,9 @@ unsigned long elbowMoveDoneTime;
 unsigned long penMoveDoneTime;
 
 // Servo motion rates in us/degree
-const int shoulderServoMoveRate = 4000;
-const int elbowServoMoveRate = 4000;
-const int penServoMoveRate = 4000;
+const int shoulderServoMoveRate = 6000;
+const int elbowServoMoveRate = 6000;
+const int penServoMoveRate = 6000;
 
 const int maxReach = 1970; //relative to arm lenghth, where arm = 1000
 const int minReach = 200;
@@ -87,6 +91,7 @@ int armLength = 1000; //not actual length, just use 1000 to make user side hardw
 
 void setup(void) {
   Serial.begin(115200);
+  EEPROM.begin(512);
 
   initPins();
 
@@ -126,7 +131,7 @@ void setup(void) {
   //    dnsServer.start(DNS_PORT, "esp8266", apIP);
 
   //  //Start mDNS
-  if (!MDNS.begin("esp8266")) {
+  if (!MDNS.begin("esp8266a")) {
     Serial.println("Error setting up MDNS responder!");
   } else {
     Serial.println("mDNS responder started");
@@ -135,9 +140,27 @@ void setup(void) {
   server.begin();
   Serial.println("Start");
   //downloadAndDraw("www.robertpoll.com", "/client/files/pic_20.txt");
-  downloadAndDraw1("www.robertpoll.com", "client/files/pic_20.txt");
+  //downloadAndDraw1("www.robertpoll.com", "client/files/pic_27.txt");
   delay(2000);
-  //downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_20.txt");
+  //downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_30.txt");
+
+  if (checkAutoDraw())
+  {
+    Serial.print("Doing and auto drawing number: ");
+    int i = checkAutoDraw();
+    Serial.println(i);
+    String fileName = "client/files/pic_" + String(i) + String(".txt");
+    Serial.println(fileName);
+    downloadAndDraw1("www.robertpoll.com", fileName);
+    incrementAutoDraw();
+  } else {
+    Serial.println("No Auto Drawing");
+  }
+  if(EEPROM.read(eepromAutoFlag) == 29)
+  {
+    Serial.println("Drawing default drawing");
+    downloadAndDraw1("www.robertpoll.com", "pic_0");
+  }
 }
 
 void loop(void) {
@@ -279,14 +302,15 @@ int downloadAndDraw1(String website, String path)
           thisLine += c;
           if (c == '\n')
           {
-            //Serial.print(thisLine);
+            Serial.print(thisLine);
             parseFileLine(thisLine);
             fastMove(xValue, yValue, zValue);
             thisLine = "";
+            delay(20);
           }
           yield();
         } else {
-          Serial.println("waiting...");
+          Serial.println("waiting");
           waitCounter++;
           delay(100);
         }
@@ -335,6 +359,37 @@ int downloadAndDraw1(String website, String path)
   Serial.println("File Done..");
 }
 
+int checkAutoDraw()
+{
+  if (EEPROM.read(eepromAutoFlag) != 27 && EEPROM.read(eepromAutoFlag) != 28)
+  {
+    Serial.println("AutoDraw never set");
+    return (0);
+  } else {
+    if (EEPROM.read(eepromAutoFlag) == 28)
+    {
+      Serial.printf("Autodraw count returning %d\n", EEPROM.read(eepromAutoCount));
+      return EEPROM.read(eepromAutoCount);
+    } else {
+      Serial.println("Autodraw not set");
+      return (0);
+    }
+  }
+}
+
+int incrementAutoDraw()
+{
+  Serial.print("Incrementing eepromAutoCount to: ");
+  if (EEPROM.read(eepromAutoCount) == 4)
+  {
+    EEPROM.write(eepromAutoCount, 1);
+  } else {
+    EEPROM.write(eepromAutoCount, EEPROM.read(eepromAutoCount) + 1);
+  }
+  EEPROM.commit();
+  Serial.println(EEPROM.read(eepromAutoCount));
+}
+
 void doGesture(int gesture)
 {
   switch (gesture)
@@ -379,11 +434,57 @@ void doGesture(int gesture)
       break;
 
     case 10:
-      downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", "/Durrell/pic_20.txt");
+      downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_31.txt");
       break;
 
     case 11:
-      downloadAndDraw("www.robertpoll.com", "client/files/pic_20.txt");
+      downloadAndDraw1("www.robertpoll.com", "client/files/pic_31.txt");
+      break;
+
+    case 12:
+      downloadAndDraw1("192.168.0.36", "pic_31.txt");
+      break;
+
+    //set AutoDraw
+    case 20 :
+      if (EEPROM.read(eepromAutoFlag) != 27 && EEPROM.read(eepromAutoFlag) != 28 && EEPROM.read(eepromAutoFlag) != 29)
+      {
+        Serial.println("AutoDraw set (new)");
+        EEPROM.write(eepromAutoFlag, 28);
+        EEPROM.write(eepromAutoCount, 1);
+      } else {
+        Serial.println("AutoDraw set");
+        EEPROM.write(eepromAutoFlag, 28);
+      }
+      EEPROM.commit();
+      break;
+
+    //clear AutoDraw
+    case 21 :
+      if (EEPROM.read(eepromAutoFlag) != 27 && EEPROM.read(eepromAutoFlag) != 28 && EEPROM.read(eepromAutoFlag) != 29)
+      {
+        Serial.println("AutoDraw unset (new)");
+        EEPROM.write(eepromAutoFlag, 27);
+        EEPROM.write(eepromAutoCount, 1);
+      } else {
+        Serial.println("AutoDraw unset");
+        EEPROM.write(eepromAutoFlag, 27);
+      }
+      EEPROM.commit();
+      break;
+
+    //reset AutoDraw
+    case 22 :
+      Serial.println("AutoDraw counter cleared");
+      EEPROM.write(eepromAutoCount, 1);
+      EEPROM.commit();
+      break;
+
+    //set DefaultAutoDraw
+    case 23 :
+      Serial.println("Default AutoDraw set");
+      EEPROM.write(eepromAutoFlag, 29);
+      EEPROM.commit();
       break;
   }
 }
@@ -622,9 +723,9 @@ void waitForServos(int shoulderMoveDoneTime, int elbowMoveDoneTime, int penMoveD
   long timeToWaitFor = waitUntilTime - nowMillis;
   if (timeToWaitFor > 0)
   {
-    //Serial.print("Waiting for ");
-    //Serial.println(timeToWaitFor);
-    if (timeToWaitFor < 1000)
+    Serial.print("Waiting for ");
+    Serial.println(timeToWaitFor);
+    if (timeToWaitFor < 1500)
     {
       delay(timeToWaitFor);
       if (led_colour++ == 4)
@@ -726,21 +827,21 @@ void computeArmAngles(float x, float y)
 
 void parseFileLine(String req) {
   int commaOffset = req.indexOf(',');
-  xValue = req.substring(0, commaOffset).toFloat();
-  //Serial.print("xValue: ");
-  //Serial.println(xValue);
+  xValue = req.substring(0, commaOffset).toFloat() * 4;
+  Serial.print("xValue: ");
+  Serial.println(xValue);
   req = req.substring(commaOffset + 1, req.length());
 
   commaOffset = req.indexOf(',');
-  yValue = req.substring(0, commaOffset).toFloat();
-  //Serial.print("yValue: ");
-  //Serial.println(yValue);
+  yValue = req.substring(0, commaOffset).toFloat() * 4;
+  Serial.print("yValue: ");
+  Serial.println(yValue);
   req = req.substring(commaOffset + 1, req.length());
 
   commaOffset = req.indexOf(',');
   zValue = req.substring(0, commaOffset).toFloat();
-  //Serial.print("zValue: ");
-  //Serial.println(zValue);
+  Serial.print("zValue: ");
+  Serial.println(zValue);
   yield();
 }
 
