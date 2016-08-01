@@ -1,14 +1,16 @@
-//https://evothings.com/how-to-connect-your-phone-to-your-esp8266-module/
-//http://192.168.0.29:1337/'H'
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-//For Autoconfig
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
 #include <Servo.h>
 #include <ESP8266HTTPClient.h>
 #include <EEPROM.h>
+#include "ESP8266httpUpdate.h"
+
+String compileTime = __TIME__;
+String compileDate = __DATE__;
 
 int eepromAutoFlag = 20;
 int eepromAutoCount = 24;
@@ -50,8 +52,8 @@ const int shoulderServoMoveRate = 6000;
 const int elbowServoMoveRate = 6000;
 const int penServoMoveRate = 6000;
 
-const int maxReach = 1970; //relative to arm lenghth, where arm = 1000
-const int minReach = 200;
+const int maxReach = 1975; //relative to arm lenghth, where arm = 1000
+const int minReach = 120;
 
 // Variable to hold time in millis when the move will be completed
 unsigned long timeWhenMoveDone = 0;
@@ -75,9 +77,9 @@ const char* password = "Blenet2238";
 WiFiManager wifiManager;
 WiFiServer server(1337);
 
-float xValue;
-float yValue;
-float zValue;
+float xValue = 1000;
+float yValue = 1000;
+float zValue = 1000;
 
 float shoulderServoAngle;
 float elbowServoAngle;
@@ -92,12 +94,18 @@ int armLength = 1000; //not actual length, just use 1000 to make user side hardw
 void setup(void) {
   Serial.begin(115200);
   EEPROM.begin(512);
+  Serial.println();
+
+  Serial.println(ESP.getChipId());
+
+  Serial.print("This version complied: ");
+  Serial.print(compileDate);
+  Serial.print(" ");
+  Serial.println(compileTime);
 
   initPins();
 
-  //liftAndHome();
-
-  Serial.println(ESP.getChipId());
+  liftAndHome();
 
   //  WiFi.mode(WIFI_STA);
   //
@@ -121,17 +129,17 @@ void setup(void) {
   }
 
   //Start a SoftAP...?
-  //    WiFi.softAP(APssid, APpassword);
-  //    IPAddress myIP = WiFi.softAPIP();
-  //    Serial.print("AP IP address: ");
-  //    Serial.println(myIP);
-  //    //Start a proper DNS server as mDNS doesn't work in AP mode.
-  //    dnsServer.setTTL(300);
-  //    dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
-  //    dnsServer.start(DNS_PORT, "esp8266", apIP);
+     WiFi.softAP(APssid, APpassword);
+     IPAddress myIP = WiFi.softAPIP();
+     Serial.print("AP IP address: ");
+     Serial.println(myIP);
+     //Start a proper DNS server as mDNS doesn't work in AP mode.
+     dnsServer.setTTL(300);
+     dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
+     dnsServer.start(DNS_PORT, "esp8266", apIP);
 
   //  //Start mDNS
-  if (!MDNS.begin("esp8266a")) {
+  if (!MDNS.begin("esp8266")) {
     Serial.println("Error setting up MDNS responder!");
   } else {
     Serial.println("mDNS responder started");
@@ -149,17 +157,17 @@ void setup(void) {
     Serial.print("Doing and auto drawing number: ");
     int i = checkAutoDraw();
     Serial.println(i);
-    String fileName = "client/files/pic_" + String(i) + String(".txt");
+    String fileName = "default/pic_" + String(i) + String(".txt");
     Serial.println(fileName);
-    downloadAndDraw1("www.robertpoll.com", fileName);
+    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", fileName);
     incrementAutoDraw();
   } else {
     Serial.println("No Auto Drawing");
   }
-  if(EEPROM.read(eepromAutoFlag) == 29)
+  if (EEPROM.read(eepromAutoFlag) == 29)
   {
     Serial.println("Drawing default drawing");
-    downloadAndDraw1("www.robertpoll.com", "pic_0");
+    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "default/pic_0.txt");
   }
 }
 
@@ -194,14 +202,16 @@ void loop(void) {
         }
 
         int Num = 0;
+        bool lineDone = false;
 
         Num = req.indexOf('x');// has to be an x
         if (Num > 0)
         {
 
           parseString(req, Num);
-          //delay(10);
           fastMove(xValue, yValue, zValue);
+          delay(30);
+          lineDone = true;
         }
 
         //Gesture tests
@@ -211,6 +221,14 @@ void loop(void) {
           int gestureValue = req.substring(0, gCmd).toInt();
           //Serial.println(String("gesture") += gestureValue);
           doGesture(gestureValue);
+          lineDone = true;
+        }
+        if (! lineDone)
+        {
+          int zCmd = req.indexOf('z');
+          zValue = req.substring(0, zCmd).toFloat();
+          Serial.println("Just do Z");
+          fastMove(xValue, yValue, zValue);
         }
       }
     }
@@ -306,7 +324,7 @@ int downloadAndDraw1(String website, String path)
             parseFileLine(thisLine);
             fastMove(xValue, yValue, zValue);
             thisLine = "";
-            delay(20);
+            delay(30);
           }
           yield();
         } else {
@@ -380,7 +398,7 @@ int checkAutoDraw()
 int incrementAutoDraw()
 {
   Serial.print("Incrementing eepromAutoCount to: ");
-  if (EEPROM.read(eepromAutoCount) == 4)
+  if (EEPROM.read(eepromAutoCount) == 366)
   {
     EEPROM.write(eepromAutoCount, 1);
   } else {
@@ -485,6 +503,13 @@ void doGesture(int gesture)
       Serial.println("Default AutoDraw set");
       EEPROM.write(eepromAutoFlag, 29);
       EEPROM.commit();
+      break;
+
+    //Update firmware
+    case 99 :
+      Serial.println("Updating firmware...");
+      ESPhttpUpdate.update("www.robertpoll.com", 80, "/client/files/firmware.bin");
+      Serial.println("Firmware update failed.");
       break;
   }
 }
@@ -909,4 +934,3 @@ void keepConnected() {
     Serial.println("mDNS responder started");
   }
 }
-
