@@ -1,8 +1,9 @@
-.pioenvs/huzzah/*/**
-.pioenvs/huzzah/*.a
-.pioenvs/huzzah/firmware.elf
-.pioenvs/.sconsign.dblite
-.pioenvs/do*
-.pioenvs/structure.hash
+#.pioenvs/huzzah/*/**
+#.pioenvs/huzzah/*.a
+#.pioenvs/huzzah/firmware.elf
+#.pioenvs/.sconsign.dblite
+#.pioenvs/do*
+#.pioenvs/structure.hash
+.pioenvs
 .clang_complete
 .gcc-flags.json
