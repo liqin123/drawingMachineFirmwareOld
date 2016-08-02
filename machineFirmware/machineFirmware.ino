@@ -96,7 +96,6 @@ void setup(void) {
   Serial.begin(115200);
   EEPROM.begin(512);
   Serial.println();
-  Serial.printf("Sizeof int = %d\n", sizeof(int));
   Serial.println(ESP.getChipId());
 
   Serial.print("This version complied: ");
@@ -544,7 +543,8 @@ void doGesture(int gesture)
     //Update firmware
     case 99 :
       Serial.println("Updating firmware...");
-      ESPhttpUpdate.update("www.robertpoll.com", 80, "/client/files/firmware.bin");
+      //ESPhttpUpdate.update("www.robertpoll.com", 80, "/client/files/firmware.bin");
+      ESPhttpUpdate.update("raw.githubusercontent.com", 80, "/robertpoll/drawingMachine/master/machineFirmware/.pioenvs/huzzah/firmware.bin");
       Serial.println("Firmware update failed.");
       break;
   }
