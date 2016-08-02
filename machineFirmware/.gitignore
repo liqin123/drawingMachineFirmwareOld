@@ -1,4 +1,5 @@
+!*/
+!.pioenvs/huzzah/firmware.bin
 .pioenvs
 .clang_complete
 .gcc-flags.json
-!.pioenvs/huzzah/firmware.bin
