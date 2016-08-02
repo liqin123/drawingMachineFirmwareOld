@@ -19,7 +19,7 @@ const byte DNS_PORT = 53;
 DNSServer dnsServer;
 IPAddress apIP(192, 168, 4, 1);
 const char *APssid = "drawingMachine";
-const char *APpassword = "drawingPassword";
+const char *APpassword = "";
 
 const int RED_LED_PIN = 13;
 const int GREEN_LED_PIN = 14;
@@ -157,9 +157,9 @@ void setup(void) {
     Serial.print("Doing and auto drawing number: ");
     int i = checkAutoDraw();
     Serial.println(i);
-    String fileName = "default/pic_" + String(i) + String(".txt");
+    String fileName = "client/files/pic_" + String(i) + String(".txt");
     Serial.println(fileName);
-    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", fileName);
+    downloadAndDraw1("robertpoll.com", fileName);
     incrementAutoDraw();
   } else {
     Serial.println("No Auto Drawing");
@@ -167,7 +167,7 @@ void setup(void) {
   if (EEPROM.read(eepromAutoFlag) == 29)
   {
     Serial.println("Drawing default drawing");
-    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "default/pic_0.txt");
+    downloadAndDraw1("robertpoll.com", "client/files/pic_0.txt");
   }
 }
 
@@ -179,7 +179,11 @@ void loop(void) {
   WiFiClient client = server.available();
 
   if (client) {
-    Serial.println("Client connected.");
+    client.println("Client connected.");
+    client.print("This version complied: ");
+    client.print(compileDate);
+    client.print(" ");
+    client.println(compileTime);
     dnsServer.processNextRequest();
     while (client.connected())
     {
