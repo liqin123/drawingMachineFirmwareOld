@@ -13,7 +13,8 @@ String compileTime = __TIME__;
 String compileDate = __DATE__;
 
 int eepromAutoFlag = 20;
-int eepromAutoCount = 24;
+int eepromAutoCount = eepromAutoFlag + sizeof(int);
+int eepromAbortFlag = eepromAutoCount + sizeof(int);
 
 const byte DNS_PORT = 53;
 DNSServer dnsServer;
@@ -95,7 +96,7 @@ void setup(void) {
   Serial.begin(115200);
   EEPROM.begin(512);
   Serial.println();
-
+  Serial.printf("Sizeof int = %d\n", sizeof(int));
   Serial.println(ESP.getChipId());
 
   Serial.print("This version complied: ");
@@ -152,8 +153,16 @@ void setup(void) {
   delay(2000);
   //downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_30.txt");
 
+  if(checkAbortFlag())
+  {
+    Serial.println("Autodraw was aborted - clearing");
+    doGesture(21);
+    clearAbortFlag();
+  }
+
   if (checkAutoDraw())
   {
+    setAbortFlag();
     Serial.print("Doing and auto drawing number: ");
     int i = checkAutoDraw();
     Serial.println(i);
@@ -161,13 +170,16 @@ void setup(void) {
     Serial.println(fileName);
     downloadAndDraw1("robertpoll.com", fileName);
     incrementAutoDraw();
+    clearAbortFlag();
   } else {
     Serial.println("No Auto Drawing");
   }
   if (EEPROM.read(eepromAutoFlag) == 29)
   {
+    setAbortFlag();
     Serial.println("Drawing default drawing");
     downloadAndDraw1("robertpoll.com", "client/files/pic_0.txt");
+    clearAbortFlag();
   }
 }
 
@@ -241,6 +253,26 @@ void loop(void) {
     client.stop();
     liftAndHome();
   }
+}
+
+void setAbortFlag()
+{
+  Serial.println("set abort flag");
+  EEPROM.write(eepromAbortFlag, 1);
+  EEPROM.commit();
+}
+
+void clearAbortFlag()
+{
+  Serial.println("clear abort flag");
+  EEPROM.write(eepromAbortFlag, 0);
+  EEPROM.commit();
+}
+
+int checkAbortFlag()
+{
+  Serial.printf("Abort flag = %d\n", EEPROM.read(eepromAbortFlag));
+  return EEPROM.read(eepromAbortFlag);
 }
 
 int downloadAndDraw(String website, String path)
