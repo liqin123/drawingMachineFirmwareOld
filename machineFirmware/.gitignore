@@ -1,5 +1,8 @@
-!*/
-!.pioenvs/huzzah/firmware.bin
-.pioenvs
+.pioenvs/huzzah/*/**
+.pioenvs/huzzah/*.a
+.pioenvs/huzzah/firmware.elf
+.pioenvs/.sconsign.dblite
+.pioenvs/do*
+.pioenvs/structure.hash
 .clang_complete
 .gcc-flags.json
