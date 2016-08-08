@@ -7,7 +7,8 @@
 #include <Servo.h>
 #include <ESP8266HTTPClient.h>
 #include <EEPROM.h>
-#include "ESP8266httpUpdate.h"
+#include <ESP8266httpUpdate.h>
+#include <DrawingArm.h>
 
 String compileTime = __TIME__;
 String compileDate = __DATE__;
@@ -39,6 +40,7 @@ const float penServoMax = 180;
 const int servoMaxMicroseconds = 2520;
 const int servoMinMicroseconds = 690;
 const int servoRangeMicroseconds = servoMaxMicroseconds - servoMinMicroseconds;
+const float servoDeadBand = 0;
 
 float lastShoulderServoAngle;
 float lastElbowServoAngle;
@@ -68,6 +70,8 @@ const int elbowServoPin = 5;//13
 // Up/down
 Servo penServo;
 const int penServoPin = 12;//5
+
+//DrawingArm arm;
 
 ///wifi
 //const char* ssid = "durrellphone";
@@ -102,6 +106,8 @@ void setup(void) {
   Serial.print(compileDate);
   Serial.print(" ");
   Serial.println(compileTime);
+
+  //arm.fastMove(1,2,3);
 
   initPins();
 
@@ -222,7 +228,8 @@ void loop(void) {
         Num = req.indexOf('x');// has to be an x
         if (Num > 0)
         {
-
+          Serial.print("Received: ");
+          Serial.println(req);
           parseString(req, Num);
           fastMove(xValue, yValue, zValue);
           delay(30);
@@ -355,7 +362,7 @@ int downloadAndDraw1(String website, String path)
           thisLine += c;
           if (c == '\n')
           {
-            Serial.print(thisLine);
+            //Serial.print(thisLine);
             parseFileLine(thisLine);
             fastMove(xValue, yValue, zValue);
             thisLine = "";
@@ -666,15 +673,16 @@ int fastMove(float xValue, float yValue, float zValue)
   checkBounds(&xValue, &yValue, maxReach, minReach);
   computeArmAngles(xValue, yValue);
   waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
-  //  Serial.print(xValue);
-  //  Serial.print(",");
-  //  Serial.print(yValue);
-  //  Serial.print(",");
-  //  Serial.print(zValue);
-  //  Serial.print(" :: ");
-  //  Serial.print(shoulderServoAngle);
-  //  Serial.print(",");
-  //  Serial.println(elbowServoAngle);
+    Serial.print(xValue);
+    Serial.print(",");
+    Serial.print(yValue);
+    Serial.print(",");
+    Serial.print(zValue);
+    Serial.print(" ,, ");
+    Serial.print(shoulderServoAngle);
+    Serial.print(",");
+    Serial.print(elbowServoAngle);
+    Serial.print(" ,, ");
   servoWrite(shoulderServoAngle, elbowServoAngle, zValue / 1000 * 180);
 }
 
@@ -784,8 +792,8 @@ void waitForServos(int shoulderMoveDoneTime, int elbowMoveDoneTime, int penMoveD
   long timeToWaitFor = waitUntilTime - nowMillis;
   if (timeToWaitFor > 0)
   {
-    Serial.print("Waiting for ");
-    Serial.println(timeToWaitFor);
+    //Serial.print("Waiting for ");
+    //Serial.println(timeToWaitFor);
     if (timeToWaitFor < 1500)
     {
       delay(timeToWaitFor);
@@ -805,49 +813,69 @@ void servoWrite(float shoulderServoAngle, float elbowServoAngle, float penServoA
   if (shoulderServoAngle < shoulderServoMin)
   {
     shoulderServoAngle = shoulderServoMin;
-    Serial.println("@@@SSSSSSSS@@@");
+    //Serial.printf("SHOULDER MIN - %d\n", shoulderServoAngle);
   }
   if (shoulderServoAngle > shoulderServoMax)
   {
     shoulderServoAngle = shoulderServoMax;
-    Serial.println("@@@SSSSSSSS@@@");
+    //Serial.printf("SHOULDER MAX - %d\n", shoulderServoAngle);
   }
-  // Write Value to servo
-  shoulderServo.writeMicroseconds((180 - shoulderServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds);
 
-  //Calculate when move will complete
-  shoulderMoveDoneTime = millis() + abs(lastShoulderServoAngle - shoulderServoAngle) * shoulderServoMoveRate / 1000;
-  lastShoulderServoAngle = shoulderServoAngle;
+  // Write Value to servo
+  float shoulderMicroseconds = (180 - shoulderServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
+  float lastShoulderMicroseconds = (180 - lastShoulderServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
+  if(true)
+  //if(abs(lastShoulderMicroseconds - shoulderMicroseconds) > servoDeadBand)
+  {
+    Serial.print(shoulderMicroseconds);
+    Serial.print(",");
+    shoulderServo.writeMicroseconds(shoulderMicroseconds);
+    //Calculate when move will complete
+    shoulderMoveDoneTime = millis() + abs(lastShoulderServoAngle - shoulderServoAngle) * shoulderServoMoveRate / 1000;
+    lastShoulderServoAngle = shoulderServoAngle;
+  } else {
+    Serial.println("Skipping Shoulder Move");
+  }
+
 
   //limits checking
   if (elbowServoAngle < elbowServoMin)
   {
     elbowServoAngle = elbowServoMin;
-    Serial.println("@@@EEEEEEEE@@@");
+    //Serial.printf("ELBOW MIN - %d\n", elbowServoAngle);
   }
   if (elbowServoAngle > elbowServoMax)
   {
     elbowServoAngle = elbowServoMax;
-    Serial.println("@@@EEEEEEEE@@@");
+    //Serial.printf("ELBOW MAX - %d\n", elbowServoAngle);
   }
 
   // Write Value to servo
-  elbowServo.writeMicroseconds((180 - elbowServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds);
-
-  //Calculate when move will complete
-  elbowMoveDoneTime = millis() + abs(lastElbowServoAngle - elbowServoAngle) * elbowServoMoveRate / 1000;
-  lastElbowServoAngle = elbowServoAngle;
+  float elbowMicroseconds = (180 - elbowServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
+  float lastElbowMicroseconds = (180 - lastElbowServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
+  if(true)
+  //if(abs(lastElbowMicroseconds - elbowMicroseconds) > servoDeadBand)
+  {
+    Serial.print(elbowMicroseconds);
+    elbowServo.writeMicroseconds(elbowMicroseconds);
+    Serial.printf(" ,, %d\n", millis());
+    //Calculate when move will complete
+    elbowMoveDoneTime = millis() + abs(lastElbowServoAngle - elbowServoAngle) * elbowServoMoveRate / 1000;
+    lastElbowServoAngle = elbowServoAngle;
+  } else {
+    Serial.println("Skipping Elbow Move");
+  }
 
   // Pen servo
   if (penServoAngle < penServoMin)
   {
     penServoAngle = penServoMin;
-    Serial.println("@@@PPPPPPPP@@@");
+    Serial.printf("PEN MIN - %d\n", penServoAngle);
   }
   if (penServoAngle > penServoMax)
   {
     penServoAngle = penServoMax;
-    Serial.println("@@@PPPPPPPP@@@");
+    Serial.printf("PEN MAX - %d\n", penServoAngle);
   }
   // Write Value to servo
   penServo.writeMicroseconds(penServoAngle / 180 * servoRangeMicroseconds + servoMinMicroseconds);
@@ -871,8 +899,8 @@ void computeArmAngles(float x, float y)
 
   a2 = acos(sqrt(sq(x) + sq(y)) / (2 * armLength));
 
-  shoulderServoAngle = (a1 + a2) * 180 / PI;
-  elbowServoAngle = (PI / 2 + a2 - a1) * 180 / PI;
+  shoulderServoAngle = (a1 + a2) * 180 / PI + 45;
+  elbowServoAngle = (PI / 2 + a2 - a1) * 180 / PI - 45;
   if ( elbowServoAngle < 0)
   {
     elbowServoAngle += 180;
@@ -889,20 +917,20 @@ void computeArmAngles(float x, float y)
 void parseFileLine(String req) {
   int commaOffset = req.indexOf(',');
   xValue = req.substring(0, commaOffset).toFloat() * 4;
-  Serial.print("xValue: ");
-  Serial.println(xValue);
+  //Serial.print("xValue: ");
+  //Serial.println(xValue);
   req = req.substring(commaOffset + 1, req.length());
 
   commaOffset = req.indexOf(',');
   yValue = req.substring(0, commaOffset).toFloat() * 4;
-  Serial.print("yValue: ");
-  Serial.println(yValue);
+  //Serial.print("yValue: ");
+  //Serial.println(yValue);
   req = req.substring(commaOffset + 1, req.length());
 
   commaOffset = req.indexOf(',');
   zValue = req.substring(0, commaOffset).toFloat();
-  Serial.print("zValue: ");
-  Serial.println(zValue);
+  //Serial.print("zValue: ");
+  //Serial.println(zValue);
   yield();
 }
 
