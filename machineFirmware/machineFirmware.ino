@@ -8,7 +8,7 @@
 #include <ESP8266HTTPClient.h>
 #include <EEPROM.h>
 #include <ESP8266httpUpdate.h>
-#include <DrawingArm.h>
+#include "DrawingArm.h"
 
 String compileTime = __TIME__;
 String compileDate = __DATE__;
@@ -71,7 +71,7 @@ const int elbowServoPin = 5;//13
 Servo penServo;
 const int penServoPin = 12;//5
 
-//DrawingArm arm;
+DrawingArm arm;
 
 ///wifi
 //const char* ssid = "durrellphone";
@@ -107,26 +107,10 @@ void setup(void) {
   Serial.print(" ");
   Serial.println(compileTime);
 
-  //arm.fastMove(1,2,3);
-
   initPins();
 
   liftAndHome();
 
-  //  WiFi.mode(WIFI_STA);
-  //
-  //  // Initiate connection with SSID and PSK
-  //  WiFi.begin(ssid, password);
-  //
-  //  // Blink LED while we wait for WiFi connection
-  //  while ( WiFi.status() != WL_CONNECTED ) {
-  //    delay(100);
-  //  }
-
-  //  WiFi.begin(ssid, password);
-
-  //Wifi AutoAP setup
-  //  wifiManager.setAPCallback(configModeCallback);
   if (!wifiManager.autoConnect()) {
     Serial.println("failed to connect and hit timeout");
     //reset and try again, or maybe put it to deep sleep
@@ -153,10 +137,10 @@ void setup(void) {
   // Start TCP server.
   server.begin();
   Serial.println("Start");
-  //downloadAndDraw("www.robertpoll.com", "/client/files/pic_20.txt");
-  //downloadAndDraw1("www.robertpoll.com", "client/files/pic_27.txt");
   delay(2000);
-  //downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_30.txt");
+
+  arm.fastMove(1000,1000,1000);
+  delay(10000);
 
   if(checkAbortFlag())
   {
@@ -686,37 +670,6 @@ int fastMove(float xValue, float yValue, float zValue)
   servoWrite(shoulderServoAngle, elbowServoAngle, zValue / 1000 * 180);
 }
 
-//void ledColour(int colour)
-//{
-//  switch (led_colour) {
-//    case 0  :
-//      analogWrite(RED_LED_PIN, 1023);
-//      analogWrite(GREEN_LED_PIN, 1023);
-//      analogWrite(BLUE_LED_PIN, 1023);
-//      break;
-//    case 1  :
-//      analogWrite(RED_LED_PIN, 1023);
-//      analogWrite(GREEN_LED_PIN, 0);
-//      analogWrite(BLUE_LED_PIN, 1023);
-//      break;
-//    case 2  :
-//      analogWrite(RED_LED_PIN, 1023);
-//      analogWrite(GREEN_LED_PIN, 1023);
-//      analogWrite(BLUE_LED_PIN, 0);
-//      break;
-//    case 3  :
-//      analogWrite(RED_LED_PIN, 0);
-//      analogWrite(GREEN_LED_PIN, 1023);
-//      analogWrite(BLUE_LED_PIN, 1023);
-//      break;
-//    case 4  :
-//      analogWrite(RED_LED_PIN, 0);
-//      analogWrite(GREEN_LED_PIN, 0);
-//      analogWrite(BLUE_LED_PIN, 0);
-//      break;
-//  }
-//}
-
 void configModeCallback (WiFiManager * myWiFiManager) {
   Serial.println("Entered config mode");
   Serial.println(WiFi.softAPIP());
@@ -904,7 +857,7 @@ void computeArmAngles(float x, float y)
   if ( elbowServoAngle < 0)
   {
     elbowServoAngle += 180;
-  };
+  }
   //  Serial.print(x);
   //  Serial.print(",");
   //  Serial.print(y);
