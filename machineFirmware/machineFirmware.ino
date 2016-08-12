@@ -81,6 +81,7 @@ const char* ssid = "orb";
 const char* password = "Blenet2238";
 WiFiManager wifiManager;
 WiFiServer server(1337);
+WiFiServer socketPolicyServer(843);
 
 float xValue = 1000;
 float yValue = 1000;
@@ -136,6 +137,7 @@ void setup(void) {
   }
   // Start TCP server.
   server.begin();
+  socketPolicyServer.begin();
   Serial.println("Start");
   delay(2000);
 
@@ -177,6 +179,18 @@ void loop(void) {
   // Check if module is still connected to WiFi.
   //keepConnected();
   dnsServer.processNextRequest();
+  WiFiClient socketPolicyClient = socketPolicyServer.available();
+  if(socketPolicyClient)
+  {
+    Serial.println("Connection on policy socket");
+    socketPolicyClient.println("<?xml version=\"1.0\"?>");
+    socketPolicyClient.println("<!DOCTYPE cross-domain-policy SYSTEM \"/xml/dtds/cross-domain-policy.dtd\">");
+    socketPolicyClient.println("<cross-domain-policy>");
+    socketPolicyClient.println("   <site-control permitted-cross-domain-policies=\"master-only\"/>");
+    socketPolicyClient.println("   <allow-access-from domain=\"*\" to-ports=\"1337\" />");
+    socketPolicyClient.println("</cross-domain-policy>");
+  }
+
   WiFiClient client = server.available();
 
   if (client) {

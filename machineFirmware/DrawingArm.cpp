@@ -69,6 +69,7 @@ servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
   }
 
   servoAngles.pen = position.z /1000 * (servoMaxAngles.pen - servoMinAngles.pen);
+    Serial.printf("ArmAngles: %d, %d, %d\n", servoAngles.shoulder, servoAngles.elbow, servoAngles.pen);
   return servoAngles;
 }
 
