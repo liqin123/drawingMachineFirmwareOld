@@ -142,7 +142,6 @@ void setup(void) {
   delay(2000);
 
   arm.fastMove(1000,1000,1000);
-  delay(10000);
 
   if(checkAbortFlag())
   {
