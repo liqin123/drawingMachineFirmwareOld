@@ -33,15 +33,20 @@ class DrawingArm
     DrawingArm();
     void attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin);
     uint8_t fastMove(float x, float y, float z);
+    void home();
 
   private:
-    int armLength;
-    coordinate_t homePositionCoordinates;
     servoMicroseconds_t servoMinMicroseconds;
     servoMicroseconds_t servoMaxMicroseconds;
     servoAngles_t servoMinAngles;
     servoAngles_t servoMaxAngles;
     servoMicroseconds_t servoDeadbandMicroseconds;
+    servoAngles_t servoMoveRates;
+    servoMicroseconds_t servoMicrosecondsMoveRate;
+    unsigned long minimumMoveTime;
+
+    int armLength;
+    coordinate_t homePosition;
     float armHomePositionAngle;
     uint16_t minReach;
     uint16_t maxReach;
@@ -54,14 +59,19 @@ class DrawingArm
     Servo elbowServo;
     Servo penServo;
 
-    coordinate_t lastPositionCoordinates;
+    coordinate_t lastPosition;
     servoAngles_t lastServoAngle;
     servoMicroseconds_t lastServoMicroseconds;
+    unsigned long lastMoveTime;
+    unsigned long moveCompleteTime;
 
     servoAngles_t positionToAngles(coordinate_t position);
     servoMicroseconds_t anglesToMicroseconds(servoAngles_t angles);
     coordinate_t checkReach(coordinate_t position, uint8_t &limitReached);
     servoAngles_t checkAngles(servoAngles_t servoAngles, uint8_t &limitReached);
+    void writeToServos(servoMicroseconds_t servoMicroseconds);
+    unsigned long isMoveDone(bool block);
+    unsigned long calculateMoveTime(servoMicroseconds_t servoMicroseconds);
 };
 
 #endif

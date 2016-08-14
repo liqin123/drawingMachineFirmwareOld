@@ -7,19 +7,29 @@
 DrawingArm::DrawingArm()
 {
   armLength = 1000;
-  homePositionCoordinates = {1000, 1000, 1000};
-  servoMinMicroseconds = {710, 710, 710};
-  servoMaxMicroseconds = {2290, 2290, 2290};
-  servoMinAngles = {15, 15, 15};                   // assumes home position is 90 degree servo position
-  servoMaxAngles = {165, 165, 165};
+  homePosition = {1000, 1000, 1000};
+  servoMinMicroseconds = {710, 710, 700};     //MG90D for arms, MG90S for pen
+  servoMaxMicroseconds = {2290, 2290, 2500};
+  servoMinAngles = {13, 13, 4};
+  servoMaxAngles = {167, 167, 176};
   servoDeadbandMicroseconds = {2, 2, 2};
+  minimumMoveTime = 30;                          // milliseconds
+  servoMoveRates = {600, 600, 600};              // degrees per second
+
   armHomePositionAngle = 45.0;
   minReach = 120;
-  maxReach = 1975;
+  maxReach = 1950;
   minShoulderAngle = 15;
   maxShoulderAngle = 150;
   minElbowAngle = 15;
   maxElbowAngle = 150;
+  lastMoveTime = 0;
+  moveCompleteTime = 0;
+
+  // precomupte move reates in microseconds of servo command per second
+  servoMicrosecondsMoveRate.shoulder = (servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder) / (servoMaxAngles.shoulder - servoMinAngles.shoulder) * servoMoveRates.shoulder;
+  servoMicrosecondsMoveRate.elbow = (servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow) / (servoMaxAngles.elbow - servoMinAngles.elbow) * servoMoveRates.elbow;
+  servoMicrosecondsMoveRate.pen = (servoMaxMicroseconds.pen - servoMinMicroseconds.pen) / (servoMaxAngles.pen - servoMinAngles.pen) * servoMoveRates.pen;
 }
 
 void DrawingArm::attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin)
@@ -27,6 +37,8 @@ void DrawingArm::attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t
   shoulderServo.attach(shoulderServoPin);
   elbowServo.attach(elbowServoPin);
   penServo.attach(penServoPin);
+  Serial.print("Move rate: ");
+  Serial.println(servoMicrosecondsMoveRate.shoulder);
 }
 
 uint8_t DrawingArm::fastMove(float x, float y, float z)
@@ -39,7 +51,30 @@ uint8_t DrawingArm::fastMove(float x, float y, float z)
   Serial.print(",");
   Serial.println(z);
 
-  servoMicroseconds_t micros = anglesToMicroseconds(positionToAngles(pos));
+  uint8_t limitReached;
+  // check that the reach is OK
+  pos = checkReach(pos, limitReached);
+  if(limitReached)
+  {
+    Serial.print("Reach limit: ");
+    Serial.println(limitReached);
+  }
+
+  // compute arm angles and check
+  servoAngles_t angles = positionToAngles(pos);
+  angles = checkAngles(angles, limitReached);
+  if(limitReached)
+  {
+    Serial.print("Angles limit: ");
+    Serial.println(limitReached);
+  }
+
+  servoMicroseconds_t micros = anglesToMicroseconds(angles);
+  writeToServos(micros);
+
+  lastPosition = pos;
+  lastServoAngle = angles;
+  lastServoMicroseconds = micros;
 }
 
 servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
@@ -57,10 +92,10 @@ servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
   a2 = acos(sqrt(sq(position.x) + sq(position.y)) / (2 * armLength));
 
   servoAngles.shoulder = (a1 + a2);
-  servoAngles.shoulder *= 180 / PI;               // radians to degrees
+  servoAngles.shoulder *= (180 / PI);             // radians to degrees
   servoAngles.shoulder += armHomePositionAngle;   // add home position
   servoAngles.elbow = (PI / 2 + a2 - a1);
-  servoAngles.elbow *= 180 / PI;                  // radians to degrees
+  servoAngles.elbow *= (180 / PI);                // radians to degrees
   servoAngles.elbow -= armHomePositionAngle;      // subtract home position
 
   if ( servoAngles.elbow < 0)                     // pick the right angle
@@ -68,34 +103,50 @@ servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
     servoAngles.elbow += 180;
   }
 
-  servoAngles.pen = position.z /1000 * (servoMaxAngles.pen - servoMinAngles.pen);
-    Serial.printf("ArmAngles: %d, %d, %d\n", servoAngles.shoulder, servoAngles.elbow, servoAngles.pen);
+  //servoAngles.shoulder = 180 - servoAngles.shoulder;                    // Shoulder servo is inverted, so adjust angle
+
+  servoAngles.pen = position.z /1000 * (servoMaxAngles.pen - servoMinAngles.pen) + servoMinAngles.pen;
+    Serial.print("servoAngles: ");
+    Serial.print(servoAngles.shoulder);
+    Serial.print(",");
+    Serial.print(servoAngles.elbow);
+    Serial.print(",");
+    Serial.println(servoAngles.pen);
   return servoAngles;
 }
 
 servoMicroseconds_t DrawingArm::anglesToMicroseconds(servoAngles_t angles)
 {
-  servoMicroseconds_t servoMicroseconds;
+  servoMicroseconds_t micros;
 
-  float shoulderAngleRange = servoMaxAngles.shoulder - servoMinAngles.shoulder;
+  //float shoulderAngleRange = servoMaxAngles.shoulder - servoMinAngles.shoulder;
+  //Serial.println(shoulderAngleRange);
   uint16_t shoulderMicrosecondsRange = servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder;
-  servoMicroseconds.shoulder = servoMinMicroseconds.shoulder + int(shoulderMicrosecondsRange/shoulderAngleRange * (angles.shoulder - servoMinAngles.shoulder) + 0.5);
+  //Serial.println(shoulderMicrosecondsRange);
+  //servoMicroseconds.shoulder = servoMinMicroseconds.shoulder + int(shoulderMicrosecondsRange/shoulderAngleRange * (angles.shoulder - servoMinAngles.shoulder) + 0.5);
 
-  float elbowAngleRange = servoMaxAngles.elbow - servoMinAngles.elbow;
+  micros.shoulder = (servoMaxAngles.shoulder - angles.shoulder) / servoMaxAngles.shoulder * shoulderMicrosecondsRange + servoMinMicroseconds.shoulder;
+
+
+  // float elbowAngleRange = servoMaxAngles.elbow - servoMinAngles.elbow;
   uint16_t elbowMicrosecondsRange = servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow;
-  servoMicroseconds.elbow = servoMinMicroseconds.elbow + int(elbowMicrosecondsRange/elbowAngleRange * (angles.elbow - servoMinAngles.elbow) + 0.5);
+  // servoMicroseconds.elbow = servoMinMicroseconds.elbow + int(elbowMicrosecondsRange/elbowAngleRange * (angles.elbow - servoMinAngles.elbow) + 0.5);
 
-  float penAngleRange = servoMaxAngles.pen - servoMinAngles.pen;
+  micros.elbow = (servoMaxAngles.elbow - angles.elbow) / servoMaxAngles.elbow * elbowMicrosecondsRange + servoMinMicroseconds.elbow;
+
+  // float penAngleRange = servoMaxAngles.pen - servoMinAngles.pen;
   uint16_t penMicrosecondsRange = servoMaxMicroseconds.pen - servoMinMicroseconds.pen;
-  servoMicroseconds.pen = servoMinMicroseconds.pen + int(penMicrosecondsRange/penAngleRange * (angles.pen - servoMinAngles.pen) + 0.5);
+  // servoMicroseconds.pen = servoMinMicroseconds.pen + int(penMicrosecondsRange/penAngleRange * (angles.pen - servoMinAngles.pen) + 0.5);
 
-  Serial.printf("ArmMicroseconds: %d, %d, %d\n", servoMicroseconds.shoulder, servoMicroseconds.elbow, servoMicroseconds.pen);
-  return servoMicroseconds;
+  micros.pen = angles.pen / servoMaxAngles.pen * penMicrosecondsRange + servoMinMicroseconds.pen;
+
+  Serial.printf("anglesToMicroseconds: %d, %d, %d\n", micros.shoulder, micros.elbow, micros.pen);
+  return micros;
 }
 
 coordinate_t DrawingArm::checkReach(coordinate_t position, uint8_t &limitReached)
 {
-  coordinate_t modifiedPosition;
+  coordinate_t modifiedPosition = position;
 
   limitReached = 0;
 
@@ -117,7 +168,7 @@ coordinate_t DrawingArm::checkReach(coordinate_t position, uint8_t &limitReached
 
 servoAngles_t DrawingArm::checkAngles(servoAngles_t servoAngles, uint8_t &limitReached)
 {
-  servoAngles_t modifiedAngles;
+  servoAngles_t modifiedAngles = servoAngles;
 
   limitReached = 0;
 
@@ -141,4 +192,58 @@ servoAngles_t DrawingArm::checkAngles(servoAngles_t servoAngles, uint8_t &limitR
     servoAngles.elbow = maxElbowAngle;
     limitReached = 4;
   }
+  return modifiedAngles;
+}
+
+void DrawingArm::writeToServos(servoMicroseconds_t micros)
+{
+  isMoveDone(true);                                   // wait for previous move
+  shoulderServo.writeMicroseconds(micros.shoulder);
+  elbowServo.writeMicroseconds(micros.elbow);
+  penServo.writeMicroseconds(micros.pen);
+  calculateMoveTime(micros);
+  lastMoveTime = millis();
+}
+
+void DrawingArm::home()
+{
+  // we need to lift pen first, but we may not know where the arm is
+  // so need to access servo directly
+  penServo.writeMicroseconds(anglesToMicroseconds(positionToAngles(homePosition)).pen);
+  delay(700); //TODO put in proper delay
+  fastMove(homePosition.x, homePosition.y, homePosition.z);
+}
+
+unsigned long DrawingArm::isMoveDone(bool block)
+{
+  unsigned long now = millis();
+  unsigned long timeRemaining;
+  if(moveCompleteTime > now)
+  {
+    timeRemaining = moveCompleteTime - now;
+  } else {
+    return 0;
+  }
+
+  if(block)
+  {
+    Serial.print("isMoveDone blocking: ");
+    Serial.println(timeRemaining);
+    delay(timeRemaining);
+    return 0;
+  } else {
+    Serial.print("isMoveDone nonBlocking: ");
+    Serial.println(timeRemaining);
+    return timeRemaining;
+  }
+}
+
+unsigned long DrawingArm::calculateMoveTime(servoMicroseconds_t servoMicroseconds)
+{
+  unsigned long shoulderTime = 1000 * abs((lastServoMicroseconds.shoulder - servoMicroseconds.shoulder)) / servoMicrosecondsMoveRate.shoulder;
+  unsigned long elbowTime = 1000 * abs((lastServoMicroseconds.elbow - servoMicroseconds.elbow)) / servoMicrosecondsMoveRate.elbow;
+  unsigned long penTime = 1000 * abs((lastServoMicroseconds.pen - servoMicroseconds.pen)) / servoMicrosecondsMoveRate.pen;
+  unsigned long moveTime = max(max(max(shoulderTime, elbowTime), penTime), minimumMoveTime);
+  moveCompleteTime = millis() + moveTime;
+  return moveTime;
 }

@@ -110,7 +110,8 @@ void setup(void) {
 
   initPins();
 
-  liftAndHome();
+  //liftAndHome();
+  arm.home();
 
   if (!wifiManager.autoConnect()) {
     Serial.println("failed to connect and hit timeout");
@@ -141,7 +142,7 @@ void setup(void) {
   Serial.println("Start");
   delay(2000);
 
-  arm.fastMove(1000,1000,1000);
+  //arm.fastMove(1000,1000,1000);
 
   if(checkAbortFlag())
   {
@@ -193,7 +194,7 @@ void loop(void) {
   WiFiClient client = server.available();
 
   if (client) {
-    client.println("Client connected.");
+    Serial.println("Client connected.");
     client.print("This version complied: ");
     client.print(compileDate);
     client.print(" ");
@@ -228,8 +229,9 @@ void loop(void) {
           Serial.print("Received: ");
           Serial.println(req);
           parseString(req, Num);
-          fastMove(xValue, yValue, zValue);
-          delay(30);
+          arm.fastMove(xValue, yValue, zValue);
+          //fastMove(xValue, yValue, zValue);
+          //delay(30);
           lineDone = true;
         }
 
@@ -247,14 +249,15 @@ void loop(void) {
           int zCmd = req.indexOf('z');
           zValue = req.substring(0, zCmd).toFloat();
           Serial.println("Just do Z");
-          fastMove(xValue, yValue, zValue);
+          arm.fastMove(xValue, yValue, zValue);
         }
       }
     }
     // Client has disconnected
     Serial.println("Client disconnected.");
     client.stop();
-    liftAndHome();
+    //liftAndHome();
+    arm.home();
   }
 }
 
@@ -305,7 +308,7 @@ int downloadAndDraw(String website, String path)
       {
         Serial.print(thisLine);
         parseFileLine(thisLine);
-        fastMove(xValue, yValue, zValue);
+        arm.fastMove(xValue, yValue, zValue);
         thisLine = "";
       }
       yield();
@@ -361,7 +364,7 @@ int downloadAndDraw1(String website, String path)
           {
             //Serial.print(thisLine);
             parseFileLine(thisLine);
-            fastMove(xValue, yValue, zValue);
+            arm.fastMove(xValue, yValue, zValue);
             thisLine = "";
             delay(30);
           }
@@ -406,7 +409,7 @@ int downloadAndDraw1(String website, String path)
       //
       //          //Serial.println(thisLine);
       //          //parseFileLine(thisLine);
-      //          //fastMove(xValue, yValue, zValue);
+      //          //arm.fastMove(xValue, yValue, zValue);
       //        } else {
       //          delay(100);
       //        }
@@ -629,7 +632,7 @@ int drawLine(float startX, float startY, float endX, float endY, int steps, doub
 {
   for (int i = 0; i < steps; i++)
   {
-    fastMove(startX + (endX - startX) * i / steps, startY + (endY - startY) * i / steps, zValue);
+    arm.fastMove(startX + (endX - startX) * i / steps, startY + (endY - startY) * i / steps, zValue);
     delay(drawTime / steps * 1000);
   }
 }
@@ -640,7 +643,7 @@ int drawSpiral(float centreX, float centreY, float startRadius, float endRadius,
   {
     float angle = revolutions * i / steps * 2 * PI;
     float thisRadius = (endRadius - startRadius) * i / steps + startRadius;
-    fastMove(centreX + thisRadius * sin(angle), centreY + thisRadius * cos(angle), zValue);
+    arm.fastMove(centreX + thisRadius * sin(angle), centreY + thisRadius * cos(angle), zValue);
     delay(drawTime / steps * 1000);
   }
 }
@@ -650,7 +653,7 @@ int drawArc(float centreX, float centreY, float radius, float startAngle, float 
   for (int i = 0; i < steps; i++)
   {
     float angle = (endAngle / 180 * PI - startAngle / 180 * PI) / steps * i + startAngle / 180 * PI;
-    fastMove(centreX + radius * sin(angle), centreY + radius * cos(angle), zValue);
+    arm.fastMove(centreX + radius * sin(angle), centreY + radius * cos(angle), zValue);
     delay(drawTime / steps * 1000);
   }
 }
@@ -695,13 +698,14 @@ void liftAndHome()
   //Lift and home pen
   waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
   //raise pen
-  computeArmAngles(xValue, yValue);
-  servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
-  waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
-  //home
-  computeArmAngles(1000, 1000);
-  servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
-  waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
+  // computeArmAngles(xValue, yValue);
+  // servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
+  // waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
+  // //home
+  // computeArmAngles(1000, 1000);
+  // servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
+  // waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
+  arm.fastMove(1000, 1000, 1000);
 }
 
 int checkBounds(float * xValue, float * yValue, int maxReach, int minReach)
@@ -942,9 +946,10 @@ void initPins() {
   //  pinMode(BLUE_LED_PIN, OUTPUT);
   //  pinMode(SWITCH_PIN, INPUT);
   //  ledColour(0);
-  penServo.attach(penServoPin);
-  shoulderServo.attach(shoulderServoPin);
-  elbowServo.attach(elbowServoPin);
+  //penServo.attach(penServoPin);
+  //shoulderServo.attach(shoulderServoPin);
+  //elbowServo.attach(elbowServoPin);
+  arm.attach(shoulderServoPin, elbowServoPin, penServoPin);
 
 }
 
