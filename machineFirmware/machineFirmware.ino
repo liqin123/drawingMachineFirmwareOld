@@ -108,7 +108,7 @@ void setup(void) {
   Serial.print(" ");
   Serial.println(compileTime);
 
-  initPins();
+  arm.attach(shoulderServoPin, elbowServoPin, penServoPin);
 
   //liftAndHome();
   arm.home();
@@ -141,8 +141,6 @@ void setup(void) {
   socketPolicyServer.begin();
   Serial.println("Start");
   delay(2000);
-
-  //arm.fastMove(1000,1000,1000);
 
   if(checkAbortFlag())
   {
@@ -207,13 +205,12 @@ void loop(void) {
       if (digitalRead(SWITCH_PIN) == LOW)
       {
         Serial.println("Resetting WiFi Settings");
-        //        wifiManager.resetSettings();
+                wifiManager.resetSettings();
       }
       String req = client.readStringUntil(';');
 
       if (client.available() )
       {
-        //digitalWrite(RED_LED_PIN, HIGH);
         if (req[0] == 0)
         {
           // edit out  a null charecter
@@ -281,55 +278,55 @@ int checkAbortFlag()
   return EEPROM.read(eepromAbortFlag);
 }
 
-int downloadAndDraw(String website, String path)
-{
-  WiFiClient client;
-  if ( !client.connect("robertpoll.com", 80) ) {
-    return false;
-  }
-
-  // Make an HTTP GET request
-  client.print("GET ");
-  client.print(path);
-  client.println(" HTTP/1.1");
-  client.print("Host: ");
-  client.println(website);
-  client.println("Connection: close");
-  client.println();
-
-  String thisLine = "";
-
-  while (true)
-  {
-    if ( client.available() ) {
-      char c = client.read();
-      thisLine += c;
-      if (c == '\n')
-      {
-        Serial.print(thisLine);
-        parseFileLine(thisLine);
-        arm.fastMove(xValue, yValue, zValue);
-        thisLine = "";
-      }
-      yield();
-    } else {
-      Serial.println("waiting...");
-      waitCounter++;
-      delay(100);
-    }
-
-    // If the server has disconnected, stop the client and WiFi
-    if ( !client.connected() ) {
-      Serial.println();
-
-      // Close socket
-      client.stop();
-      Serial.printf("Finished AutoDrawing. waitCounter: %d secs\n", waitCounter / 10);
-      waitCounter = 0;
-      return (0);
-    }
-  }
-}
+// int downloadAndDraw(String website, String path)
+// {
+//   WiFiClient client;
+//   if ( !client.connect("robertpoll.com", 80) ) {
+//     return false;
+//   }
+//
+//   // Make an HTTP GET request
+//   client.print("GET ");
+//   client.print(path);
+//   client.println(" HTTP/1.1");
+//   client.print("Host: ");
+//   client.println(website);
+//   client.println("Connection: close");
+//   client.println();
+//
+//   String thisLine = "";
+//
+//   while (true)
+//   {
+//     if ( client.available() ) {
+//       char c = client.read();
+//       thisLine += c;
+//       if (c == '\n')
+//       {
+//         Serial.print(thisLine);
+//         parseFileLine(thisLine);
+//         arm.fastMove(xValue, yValue, zValue);
+//         thisLine = "";
+//       }
+//       yield();
+//     } else {
+//       Serial.println("waiting...");
+//       waitCounter++;
+//       delay(100);
+//     }
+//
+//     // If the server has disconnected, stop the client and WiFi
+//     if ( !client.connected() ) {
+//       Serial.println();
+//
+//       // Close socket
+//       client.stop();
+//       Serial.printf("Finished AutoDrawing. waitCounter: %d secs\n", waitCounter / 10);
+//       waitCounter = 0;
+//       return (0);
+//     }
+//   }
+// }
 
 int downloadAndDraw1(String website, String path)
 {
@@ -456,21 +453,8 @@ void doGesture(int gesture)
   {
     case 1 :
       drawCircle(1000, 700, 300, 100, 2, 1000);
-      //drawAntiCircle(1000, 700, 300, 100, 2, 1000);
       drawCircle(1000, 700, 300, 100, 2, 1000);
       drawCircle(1000, 700, 300, 100, 2, 1000);
-      break;
-
-    case 2 :
-      drawSpiral(1000, 700, 600, 0, 2, 300, 4, 1000);
-      break;
-
-    case 3 :
-      drawTriangle(1000, 1000, 800, 500, 2.5, 1000);
-      break;
-
-    case 4 :
-      drawSquare(1000, 1000, 700, 400, 3, 1000);
       break;
 
     case 5 :
@@ -483,14 +467,6 @@ void doGesture(int gesture)
 
     case 7 :
       gestureInfinity(1);
-      break;
-
-    case 8 :
-      gestureCross(1);
-      break;
-
-    case 9 :
-      gestureTick(10);
       break;
 
     case 10:
@@ -557,28 +533,6 @@ void doGesture(int gesture)
   }
 }
 
-int gestureTick(int howMany)
-{
-  //drawLine(500, 500, 800, 200, 100, 0.4, 1000);
-  //drawLine(800, 200, 1200, 1400, 300, 0.2, 1000);
-  for (int i = 0; i < howMany; i++)
-  {
-    drawLine(1000, 1000, 1100, 1100, 10, 0.1, 1000);
-    delay(500);
-    drawLine(1100, 1100, 1000, 1000, 10, 0.1, 1000);
-    delay(500);
-  }
-}
-
-int gestureCross(int howMany)
-{
-  for (int i = 0; i < howMany; i++)
-  {
-    drawLine(200, 200, 1000, 1000, 100, 1, 1000);
-    drawLine(1000, 200, 200, 1000, 100, 1, 1000);
-  }
-}
-
 int gestureInfinity(int howMany)
 {
   for (int i = 0; i < howMany; i++)
@@ -606,28 +560,6 @@ int gestureWave(int howMany)
   }
 }
 
-int drawSquare(float centreX, float centreY, float sideLength, int steps, double drawTime, int zValue)
-{
-  drawLine(centreX + sideLength / 2, centreY + sideLength / 2, centreX + sideLength / 2, centreY - sideLength / 2, steps / 4, drawTime / 4, zValue);
-  drawLine(centreX + sideLength / 2, centreY - sideLength / 2, centreX - sideLength / 2, centreY - sideLength / 2, steps / 4, drawTime / 4, zValue);
-  drawLine(centreX - sideLength / 2, centreY - sideLength / 2, centreX - sideLength / 2, centreY + sideLength / 2, steps / 4, drawTime / 4, zValue);
-  drawLine(centreX - sideLength / 2, centreY + sideLength / 2, centreX + sideLength / 2, centreY + sideLength / 2, steps / 4, drawTime / 4, zValue);
-}
-
-int drawTriangle(float centreX, float centreY, float sideLength, int steps, double drawTime, int zValue)
-{
-  int height = sideLength * sin(PI / 3);
-  int topX = centreX;
-  int topY = centreY + height / 2;
-  int rightX = centreX + sideLength / 2;
-  int rightY = centreY - height / 2;
-  int leftX = centreX - sideLength / 2;
-  int leftY = rightY;
-  drawLine(topX, topY, rightX, rightY, steps / 3, drawTime / 3, zValue);
-  drawLine(rightX, rightY, leftX, leftY, steps / 3, drawTime / 3, zValue);
-  drawLine(leftX, leftY, topX, topY, steps / 3, drawTime / 3, zValue);
-}
-
 int drawLine(float startX, float startY, float endX, float endY, int steps, double drawTime, int zValue)
 {
   for (int i = 0; i < steps; i++)
@@ -637,15 +569,9 @@ int drawLine(float startX, float startY, float endX, float endY, int steps, doub
   }
 }
 
-int drawSpiral(float centreX, float centreY, float startRadius, float endRadius, float revolutions, int steps, double drawTime, int zValue)
+int drawCircle(float centreX, float centreY, float radius, int steps, double drawTime, int zValue)
 {
-  for (int i = 0; i < steps; i++)
-  {
-    float angle = revolutions * i / steps * 2 * PI;
-    float thisRadius = (endRadius - startRadius) * i / steps + startRadius;
-    arm.fastMove(centreX + thisRadius * sin(angle), centreY + thisRadius * cos(angle), zValue);
-    delay(drawTime / steps * 1000);
-  }
+  drawArc(centreX, centreY, radius, 0, 360, steps, drawTime, zValue);
 }
 
 int drawArc(float centreX, float centreY, float radius, float startAngle, float endAngle, int steps, double drawTime, int zValue)
@@ -658,230 +584,11 @@ int drawArc(float centreX, float centreY, float radius, float startAngle, float 
   }
 }
 
-int drawCircle(float centreX, float centreY, float radius, int steps, double drawTime, int zValue)
-{
-  drawArc(centreX, centreY, radius, 0, 360, steps, drawTime, zValue);
-}
-
-int drawAntiCircle(float centreX, float centreY, float radius, int steps, double drawTime, int zValue)
-{
-  drawArc(centreX, centreY, radius, 360, 0, steps, drawTime, zValue);
-}
-
-int fastMove(float xValue, float yValue, float zValue)
-{
-  checkBounds(&xValue, &yValue, maxReach, minReach);
-  computeArmAngles(xValue, yValue);
-  waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
-    Serial.print(xValue);
-    Serial.print(",");
-    Serial.print(yValue);
-    Serial.print(",");
-    Serial.print(zValue);
-    Serial.print(" ,, ");
-    Serial.print(shoulderServoAngle);
-    Serial.print(",");
-    Serial.print(elbowServoAngle);
-    Serial.print(" ,, ");
-  servoWrite(shoulderServoAngle, elbowServoAngle, zValue / 1000 * 180);
-}
-
 void configModeCallback (WiFiManager * myWiFiManager) {
   Serial.println("Entered config mode");
   Serial.println(WiFi.softAPIP());
   //if you used auto generated SSID, print it
   Serial.println(myWiFiManager->getConfigPortalSSID());
-}
-
-void liftAndHome()
-{
-  //Lift and home pen
-  waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
-  //raise pen
-  // computeArmAngles(xValue, yValue);
-  // servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
-  // waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
-  // //home
-  // computeArmAngles(1000, 1000);
-  // servoWrite(shoulderServoAngle, elbowServoAngle, 1000 / 1000 * 180);
-  // waitForServos(shoulderMoveDoneTime, elbowMoveDoneTime, penMoveDoneTime);
-  arm.fastMove(1000, 1000, 1000);
-}
-
-int checkBounds(float * xValue, float * yValue, int maxReach, int minReach)
-{
-  int reach = sqrt(sq(* xValue) + sq(* yValue));
-  if (reach > maxReach)
-  {
-    Serial.print("Max Reach Limit=");
-    Serial.print(reach);
-    Serial.print("/");
-    Serial.print(maxReach);
-    Serial.print(" xy=");
-    Serial.print(* xValue);
-    Serial.print(",");
-    Serial.println(* yValue);
-    (* xValue) = (*xValue) * maxReach / reach;
-    (* yValue) = (*yValue) * maxReach / reach;
-    return (reach - maxReach);
-  }
-
-  if (reach < minReach)
-  {
-    Serial.print("Min Reach Limit=");
-    Serial.print(reach);
-    Serial.print("/");
-    Serial.print(minReach);
-    Serial.print(" xy=");
-    Serial.print(* xValue);
-    Serial.print(",");
-    Serial.println(* yValue);
-    (* xValue) = (*xValue) * minReach / reach;
-    (* yValue) = (*yValue) * minReach / reach;
-    return (minReach - reach);
-  }
-  return 0;
-}
-
-void waitForServos(int shoulderMoveDoneTime, int elbowMoveDoneTime, int penMoveDoneTime)
-{
-  unsigned long waitUntilTime = 0;
-  if (shoulderMoveDoneTime > waitUntilTime)
-  {
-    waitUntilTime = shoulderMoveDoneTime;
-  }
-  if (elbowMoveDoneTime > waitUntilTime)
-  {
-    waitUntilTime = elbowMoveDoneTime;
-  }
-  if (penMoveDoneTime > waitUntilTime)
-  {
-    waitUntilTime = penMoveDoneTime;
-  }
-  unsigned long nowMillis = millis();
-  long timeToWaitFor = waitUntilTime - nowMillis;
-  if (timeToWaitFor > 0)
-  {
-    //Serial.print("Waiting for ");
-    //Serial.println(timeToWaitFor);
-    if (timeToWaitFor < 1500)
-    {
-      delay(timeToWaitFor);
-      if (led_colour++ == 4)
-      {
-        led_colour = 0;
-      }
-    } else {
-      Serial.println("Abnormally long wait!");
-    }
-  }
-}
-
-void servoWrite(float shoulderServoAngle, float elbowServoAngle, float penServoAngle)
-{
-
-  if (shoulderServoAngle < shoulderServoMin)
-  {
-    shoulderServoAngle = shoulderServoMin;
-    //Serial.printf("SHOULDER MIN - %d\n", shoulderServoAngle);
-  }
-  if (shoulderServoAngle > shoulderServoMax)
-  {
-    shoulderServoAngle = shoulderServoMax;
-    //Serial.printf("SHOULDER MAX - %d\n", shoulderServoAngle);
-  }
-
-  // Write Value to servo
-  float shoulderMicroseconds = (180 - shoulderServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
-  float lastShoulderMicroseconds = (180 - lastShoulderServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
-  if(true)
-  //if(abs(lastShoulderMicroseconds - shoulderMicroseconds) > servoDeadBand)
-  {
-    Serial.print(shoulderMicroseconds);
-    Serial.print(",");
-    shoulderServo.writeMicroseconds(shoulderMicroseconds);
-    //Calculate when move will complete
-    shoulderMoveDoneTime = millis() + abs(lastShoulderServoAngle - shoulderServoAngle) * shoulderServoMoveRate / 1000;
-    lastShoulderServoAngle = shoulderServoAngle;
-  } else {
-    Serial.println("Skipping Shoulder Move");
-  }
-
-
-  //limits checking
-  if (elbowServoAngle < elbowServoMin)
-  {
-    elbowServoAngle = elbowServoMin;
-    //Serial.printf("ELBOW MIN - %d\n", elbowServoAngle);
-  }
-  if (elbowServoAngle > elbowServoMax)
-  {
-    elbowServoAngle = elbowServoMax;
-    //Serial.printf("ELBOW MAX - %d\n", elbowServoAngle);
-  }
-
-  // Write Value to servo
-  float elbowMicroseconds = (180 - elbowServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
-  float lastElbowMicroseconds = (180 - lastElbowServoAngle) / 180 * servoRangeMicroseconds + servoMinMicroseconds;
-  if(true)
-  //if(abs(lastElbowMicroseconds - elbowMicroseconds) > servoDeadBand)
-  {
-    Serial.print(elbowMicroseconds);
-    elbowServo.writeMicroseconds(elbowMicroseconds);
-    Serial.printf(" ,, %d\n", millis());
-    //Calculate when move will complete
-    elbowMoveDoneTime = millis() + abs(lastElbowServoAngle - elbowServoAngle) * elbowServoMoveRate / 1000;
-    lastElbowServoAngle = elbowServoAngle;
-  } else {
-    Serial.println("Skipping Elbow Move");
-  }
-
-  // Pen servo
-  if (penServoAngle < penServoMin)
-  {
-    penServoAngle = penServoMin;
-    Serial.printf("PEN MIN - %d\n", penServoAngle);
-  }
-  if (penServoAngle > penServoMax)
-  {
-    penServoAngle = penServoMax;
-    Serial.printf("PEN MAX - %d\n", penServoAngle);
-  }
-  // Write Value to servo
-  penServo.writeMicroseconds(penServoAngle / 180 * servoRangeMicroseconds + servoMinMicroseconds);
-
-  //Calculate time when move will complete
-  penMoveDoneTime = millis() + abs(lastPenServoAngle - penServoAngle) * penServoMoveRate / 1000;
-  lastPenServoAngle = penServoAngle;
-}
-
-void computeArmAngles(float x, float y)
-{
-  float a1;
-  float a2;
-
-  if (x == 0)
-  {
-    a1 = PI / 2;
-  } else {
-    a1 = atan2(y, x);
-  }
-
-  a2 = acos(sqrt(sq(x) + sq(y)) / (2 * armLength));
-
-  shoulderServoAngle = (a1 + a2) * 180 / PI + 45;
-  elbowServoAngle = (PI / 2 + a2 - a1) * 180 / PI - 45;
-  if ( elbowServoAngle < 0)
-  {
-    elbowServoAngle += 180;
-  }
-  //  Serial.print(x);
-  //  Serial.print(",");
-  //  Serial.print(y);
-  //  Serial.print(",");
-  //  Serial.print(shoulderServoAngle);
-  //  Serial.print(",");
-  //  Serial.println(elbowServoAngle);
 }
 
 void parseFileLine(String req) {
@@ -937,20 +644,6 @@ void printWiFiStatus() {
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-}
-
-void initPins() {
-
-  //  pinMode(RED_LED_PIN, OUTPUT);
-  //  pinMode(GREEN_LED_PIN, OUTPUT);
-  //  pinMode(BLUE_LED_PIN, OUTPUT);
-  //  pinMode(SWITCH_PIN, INPUT);
-  //  ledColour(0);
-  //penServo.attach(penServoPin);
-  //shoulderServo.attach(shoulderServoPin);
-  //elbowServo.attach(elbowServoPin);
-  arm.attach(shoulderServoPin, elbowServoPin, penServoPin);
-
 }
 
 void keepConnected() {

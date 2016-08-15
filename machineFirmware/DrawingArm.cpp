@@ -119,25 +119,13 @@ servoMicroseconds_t DrawingArm::anglesToMicroseconds(servoAngles_t angles)
 {
   servoMicroseconds_t micros;
 
-  //float shoulderAngleRange = servoMaxAngles.shoulder - servoMinAngles.shoulder;
-  //Serial.println(shoulderAngleRange);
   uint16_t shoulderMicrosecondsRange = servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder;
-  //Serial.println(shoulderMicrosecondsRange);
-  //servoMicroseconds.shoulder = servoMinMicroseconds.shoulder + int(shoulderMicrosecondsRange/shoulderAngleRange * (angles.shoulder - servoMinAngles.shoulder) + 0.5);
-
   micros.shoulder = (servoMaxAngles.shoulder - angles.shoulder) / servoMaxAngles.shoulder * shoulderMicrosecondsRange + servoMinMicroseconds.shoulder;
 
-
-  // float elbowAngleRange = servoMaxAngles.elbow - servoMinAngles.elbow;
   uint16_t elbowMicrosecondsRange = servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow;
-  // servoMicroseconds.elbow = servoMinMicroseconds.elbow + int(elbowMicrosecondsRange/elbowAngleRange * (angles.elbow - servoMinAngles.elbow) + 0.5);
-
   micros.elbow = (servoMaxAngles.elbow - angles.elbow) / servoMaxAngles.elbow * elbowMicrosecondsRange + servoMinMicroseconds.elbow;
 
-  // float penAngleRange = servoMaxAngles.pen - servoMinAngles.pen;
   uint16_t penMicrosecondsRange = servoMaxMicroseconds.pen - servoMinMicroseconds.pen;
-  // servoMicroseconds.pen = servoMinMicroseconds.pen + int(penMicrosecondsRange/penAngleRange * (angles.pen - servoMinAngles.pen) + 0.5);
-
   micros.pen = angles.pen / servoMaxAngles.pen * penMicrosecondsRange + servoMinMicroseconds.pen;
 
   Serial.printf("anglesToMicroseconds: %d, %d, %d\n", micros.shoulder, micros.elbow, micros.pen);
