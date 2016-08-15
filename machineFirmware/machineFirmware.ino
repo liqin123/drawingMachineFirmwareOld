@@ -136,11 +136,12 @@ void setup(void) {
   } else {
     Serial.println("mDNS responder started");
   }
+  MDNS.addService("drawing", "tcp", 1337);
   // Start TCP server.
   server.begin();
   socketPolicyServer.begin();
   Serial.println("Start");
-  delay(2000);
+  //delay(1000);
 
   if(checkAbortFlag())
   {
@@ -238,7 +239,12 @@ void loop(void) {
         {
           int gestureValue = req.substring(0, gCmd).toInt();
           //Serial.println(String("gesture") += gestureValue);
-          doGesture(gestureValue);
+          if(gestureValue == 30)
+          {
+            client.println("OK");
+          } else {
+            doGesture(gestureValue);
+          }
           lineDone = true;
         }
         if (! lineDone)
@@ -584,14 +590,16 @@ int drawArc(float centreX, float centreY, float radius, float startAngle, float 
   }
 }
 
-void configModeCallback (WiFiManager * myWiFiManager) {
+void configModeCallback (WiFiManager * myWiFiManager)
+{
   Serial.println("Entered config mode");
   Serial.println(WiFi.softAPIP());
   //if you used auto generated SSID, print it
   Serial.println(myWiFiManager->getConfigPortalSSID());
 }
 
-void parseFileLine(String req) {
+void parseFileLine(String req)
+{
   int commaOffset = req.indexOf(',');
   xValue = req.substring(0, commaOffset).toFloat() * 4;
   //Serial.print("xValue: ");

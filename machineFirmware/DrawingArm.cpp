@@ -14,7 +14,7 @@ DrawingArm::DrawingArm()
   servoMaxAngles = {167, 167, 176};
   servoDeadbandMicroseconds = {2, 2, 2};
   minimumMoveTime = 30;                          // milliseconds
-  servoMoveRates = {600, 600, 600};              // degrees per second
+  servoMoveRates = {500, 500, 500};              // degrees per second. Datasheet says 600, but seems a bit fast.
 
   armHomePositionAngle = 45.0;
   minReach = 120;
