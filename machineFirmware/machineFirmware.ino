@@ -74,11 +74,6 @@ const int penServoPin = 12;//5
 DrawingArm arm;
 
 ///wifi
-//const char* ssid = "durrellphone";
-//const char* ssid = "durrell";
-const char* ssid = "orb";
-//const char* password = "0101010101";
-const char* password = "Blenet2238";
 WiFiManager wifiManager;
 WiFiServer server(1337);
 WiFiServer socketPolicyServer(843);
@@ -649,7 +644,7 @@ void parseString(String req, int letterOffset) {
 void printWiFiStatus() {
   Serial.println("");
   Serial.print("Connected to ");
-  Serial.println(ssid);
+  Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }

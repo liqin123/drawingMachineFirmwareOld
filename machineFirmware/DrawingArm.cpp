@@ -26,7 +26,7 @@ DrawingArm::DrawingArm()
   lastMoveTime = 0;
   moveCompleteTime = 0;
 
-  // precomupte move reates in microseconds of servo command per second
+  // precomupte move rates in microseconds of servo command per second
   servoMicrosecondsMoveRate.shoulder = (servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder) / (servoMaxAngles.shoulder - servoMinAngles.shoulder) * servoMoveRates.shoulder;
   servoMicrosecondsMoveRate.elbow = (servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow) / (servoMaxAngles.elbow - servoMinAngles.elbow) * servoMoveRates.elbow;
   servoMicrosecondsMoveRate.pen = (servoMaxMicroseconds.pen - servoMinMicroseconds.pen) / (servoMaxAngles.pen - servoMinAngles.pen) * servoMoveRates.pen;
