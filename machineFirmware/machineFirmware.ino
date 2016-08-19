@@ -247,7 +247,7 @@ void loop(void) {
           int zCmd = req.indexOf('z');
           zValue = req.substring(0, zCmd).toFloat();
           Serial.println("Just do Z");
-          arm.fastMove(xValue, yValue, zValue);
+          arm.pen(zValue);
         }
       }
     }
@@ -522,6 +522,15 @@ void doGesture(int gesture)
       Serial.println("Default AutoDraw set");
       EEPROM.write(eepromAutoFlag, 29);
       EEPROM.commit();
+      break;
+
+    case 40:
+      for(int i = 200; i <= 1000; i += 100)
+      {
+        arm.fastMove(i, 700, 1000);
+        drawLine(i, 700, i, -700, 500, 0, 0);
+        arm.pen(1000);
+      }
       break;
 
     //Update firmware

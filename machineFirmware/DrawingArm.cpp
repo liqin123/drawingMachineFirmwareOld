@@ -17,12 +17,8 @@ DrawingArm::DrawingArm()
   servoMoveRates = {500, 500, 500};              // degrees per second. Datasheet says 600, but seems a bit fast.
 
   armHomePositionAngle = 45.0;
-  minReach = 120;
+  minReach = 350;
   maxReach = 1950;
-  minShoulderAngle = 15;
-  maxShoulderAngle = 150;
-  minElbowAngle = 15;
-  maxElbowAngle = 150;
   lastMoveTime = 0;
   moveCompleteTime = 0;
 
@@ -30,6 +26,11 @@ DrawingArm::DrawingArm()
   servoMicrosecondsMoveRate.shoulder = (servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder) / (servoMaxAngles.shoulder - servoMinAngles.shoulder) * servoMoveRates.shoulder;
   servoMicrosecondsMoveRate.elbow = (servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow) / (servoMaxAngles.elbow - servoMinAngles.elbow) * servoMoveRates.elbow;
   servoMicrosecondsMoveRate.pen = (servoMaxMicroseconds.pen - servoMinMicroseconds.pen) / (servoMaxAngles.pen - servoMinAngles.pen) * servoMoveRates.pen;
+
+  //precompute number of microseconds per degree of servo moveCompleteTime
+  servoMicrosecondsPerDegree.shoulder = (servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder) / (servoMaxAngles.shoulder - servoMinAngles.shoulder);
+  servoMicrosecondsPerDegree.elbow = (servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow) / (servoMaxAngles.elbow - servoMinAngles.elbow);
+  servoMicrosecondsPerDegree.pen = (servoMaxMicroseconds.pen - servoMinMicroseconds.pen) / (servoMaxAngles.pen - servoMinAngles.pen);
 }
 
 void DrawingArm::attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin)
@@ -119,14 +120,18 @@ servoMicroseconds_t DrawingArm::anglesToMicroseconds(servoAngles_t angles)
 {
   servoMicroseconds_t micros;
 
-  uint16_t shoulderMicrosecondsRange = servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder;
-  micros.shoulder = (servoMaxAngles.shoulder - angles.shoulder) / servoMaxAngles.shoulder * shoulderMicrosecondsRange + servoMinMicroseconds.shoulder;
+  // uint16_t shoulderMicrosecondsRange = servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder;
+  // micros.shoulder = (servoMaxAngles.shoulder - angles.shoulder) / servoMaxAngles.shoulder * shoulderMicrosecondsRange + servoMinMicroseconds.shoulder;
+  //
+  // uint16_t elbowMicrosecondsRange = servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow;
+  // micros.elbow = (servoMaxAngles.elbow - angles.elbow) / servoMaxAngles.elbow * elbowMicrosecondsRange + servoMinMicroseconds.elbow;
+  //
+  // uint16_t penMicrosecondsRange = servoMaxMicroseconds.pen - servoMinMicroseconds.pen;
+  // micros.pen = angles.pen / servoMaxAngles.pen * penMicrosecondsRange + servoMinMicroseconds.pen;
 
-  uint16_t elbowMicrosecondsRange = servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow;
-  micros.elbow = (servoMaxAngles.elbow - angles.elbow) / servoMaxAngles.elbow * elbowMicrosecondsRange + servoMinMicroseconds.elbow;
-
-  uint16_t penMicrosecondsRange = servoMaxMicroseconds.pen - servoMinMicroseconds.pen;
-  micros.pen = angles.pen / servoMaxAngles.pen * penMicrosecondsRange + servoMinMicroseconds.pen;
+  micros.shoulder = (180 - angles.shoulder - servoMinAngles.shoulder) * servoMicrosecondsPerDegree.shoulder + servoMinMicroseconds.shoulder;
+  micros.elbow = (180 - angles.elbow - servoMinAngles.elbow) * servoMicrosecondsPerDegree.elbow + servoMinMicroseconds.elbow;
+  micros.pen = (angles.pen - servoMinAngles.pen) * servoMicrosecondsPerDegree.pen + servoMinMicroseconds.pen;
 
   Serial.printf("anglesToMicroseconds: %d, %d, %d\n", micros.shoulder, micros.elbow, micros.pen);
   return micros;
@@ -160,24 +165,24 @@ servoAngles_t DrawingArm::checkAngles(servoAngles_t servoAngles, uint8_t &limitR
 
   limitReached = 0;
 
-  if (servoAngles.shoulder < minShoulderAngle)
+  if (servoAngles.shoulder < servoMinAngles.shoulder)
   {
-    servoAngles.shoulder = minShoulderAngle;
+    modifiedAngles.shoulder = servoMinAngles.shoulder;
     limitReached = 1;
   }
-  if (servoAngles.shoulder > maxShoulderAngle)
+  if (servoAngles.shoulder > servoMaxAngles.shoulder)
   {
-    servoAngles.shoulder = maxShoulderAngle;
+    modifiedAngles.shoulder = servoMaxAngles.shoulder;
     limitReached = 2;
   }
-  if (servoAngles.elbow < minElbowAngle)
+  if (servoAngles.elbow < servoMinAngles.elbow)
   {
-    servoAngles.elbow = minElbowAngle;
+    modifiedAngles.elbow = servoMinAngles.elbow;
     limitReached = 3;
   }
-  if (servoAngles.elbow > maxElbowAngle)
+  if (servoAngles.elbow > servoMaxAngles.elbow)
   {
-    servoAngles.elbow = maxElbowAngle;
+    modifiedAngles.elbow = servoMaxAngles.elbow;
     limitReached = 4;
   }
   return modifiedAngles;
@@ -198,8 +203,13 @@ void DrawingArm::home()
   // we need to lift pen first, but we may not know where the arm is
   // so need to access servo directly
   penServo.writeMicroseconds(anglesToMicroseconds(positionToAngles(homePosition)).pen);
-  delay(700); //TODO put in proper delay
+  delay(700); // TODO put in proper delay
   fastMove(homePosition.x, homePosition.y, homePosition.z);
+}
+
+void DrawingArm::pen(float z)
+{
+  fastMove(lastPosition.x, lastPosition.y, z);
 }
 
 unsigned long DrawingArm::isMoveDone(bool block)

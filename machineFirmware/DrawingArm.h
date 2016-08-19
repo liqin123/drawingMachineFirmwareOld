@@ -27,19 +27,29 @@ typedef struct
   uint16_t pen;
 } servoMicroseconds_t;
 
+typedef struct
+{
+  float shoulder;
+  float elbow;
+  float pen;
+} servoMicrosecondsFloat_t;
+
 class DrawingArm
 {
   public:
     DrawingArm();
     void attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin);
     uint8_t fastMove(float x, float y, float z);
+    unsigned long isMoveDone(bool block);
     void home();
+    void pen(float z);
 
   private:
     servoMicroseconds_t servoMinMicroseconds;
     servoMicroseconds_t servoMaxMicroseconds;
     servoAngles_t servoMinAngles;
     servoAngles_t servoMaxAngles;
+    servoMicrosecondsFloat_t servoMicrosecondsPerDegree;
     servoMicroseconds_t servoDeadbandMicroseconds;
     servoAngles_t servoMoveRates;
     servoMicroseconds_t servoMicrosecondsMoveRate;
@@ -50,10 +60,6 @@ class DrawingArm
     float armHomePositionAngle;
     uint16_t minReach;
     uint16_t maxReach;
-    uint16_t minShoulderAngle;
-    uint16_t maxShoulderAngle;
-    uint16_t minElbowAngle;
-    uint16_t maxElbowAngle;
 
     Servo shoulderServo;
     Servo elbowServo;
@@ -70,7 +76,6 @@ class DrawingArm
     coordinate_t checkReach(coordinate_t position, uint8_t &limitReached);
     servoAngles_t checkAngles(servoAngles_t servoAngles, uint8_t &limitReached);
     void writeToServos(servoMicroseconds_t servoMicroseconds);
-    unsigned long isMoveDone(bool block);
     unsigned long calculateMoveTime(servoMicroseconds_t servoMicroseconds);
 };
 
