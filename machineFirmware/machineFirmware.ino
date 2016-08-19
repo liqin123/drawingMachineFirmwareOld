@@ -9,6 +9,7 @@
 #include <EEPROM.h>
 #include <ESP8266httpUpdate.h>
 #include "DrawingArm.h"
+#include "HTTPRangeClient.h"
 
 String compileTime = __TIME__;
 String compileDate = __DATE__;
@@ -31,45 +32,9 @@ int led_colour = 0;
 
 const int SWITCH_PIN = 0;
 
-const float shoulderServoMin = 5;
-const float shoulderServoMax = 175;
-const float elbowServoMin = 5;
-const float elbowServoMax = 175;
-const float penServoMin = 0;
-const float penServoMax = 180;
-const int servoMaxMicroseconds = 2520;
-const int servoMinMicroseconds = 690;
-const int servoRangeMicroseconds = servoMaxMicroseconds - servoMinMicroseconds;
-const float servoDeadBand = 0;
-
-float lastShoulderServoAngle;
-float lastElbowServoAngle;
-float lastPenServoAngle;
-
-unsigned long shoulderMoveDoneTime;
-unsigned long elbowMoveDoneTime;
-unsigned long penMoveDoneTime;
-
-// Servo motion rates in us/degree
-const int shoulderServoMoveRate = 6000;
-const int elbowServoMoveRate = 6000;
-const int penServoMoveRate = 6000;
-
-const int maxReach = 1975; //relative to arm lenghth, where arm = 1000
-const int minReach = 120;
-
-// Variable to hold time in millis when the move will be completed
-unsigned long timeWhenMoveDone = 0;
-
-// Shoulder
-Servo shoulderServo;
-const int shoulderServoPin = 4; //15
-// Elbow
-Servo elbowServo;
-const int elbowServoPin = 5;//13
-// Up/down
-Servo penServo;
-const int penServoPin = 12;//5
+const int shoulderServoPin = 4;
+const int elbowServoPin = 5;
+const int penServoPin = 12;
 
 DrawingArm arm;
 
@@ -82,15 +47,7 @@ float xValue = 1000;
 float yValue = 1000;
 float zValue = 1000;
 
-float shoulderServoAngle;
-float elbowServoAngle;
-
-float lastShoulderAngle;
-float lastElbowAngle;
-
 long waitCounter = 0;
-
-int armLength = 1000; //not actual length, just use 1000 to make user side hardware independent
 
 void setup(void) {
   Serial.begin(115200);
