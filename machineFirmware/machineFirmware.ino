@@ -37,6 +37,7 @@ const int elbowServoPin = 5;
 const int penServoPin = 12;
 
 DrawingArm arm;
+HTTPRangeClient httpClient;
 
 ///wifi
 WiFiManager wifiManager;
@@ -122,6 +123,45 @@ void setup(void) {
     Serial.println("Drawing default drawing");
     downloadAndDraw1("robertpoll.com", "client/files/pic_0.txt");
     clearAbortFlag();
+  }
+  Serial.println(ESP.getFreeHeap());
+  //httpClient.connect("http://www.robertpoll.com/client/files/testfile-orig.txt");
+  //httpClient.connect("http://drawingmachine.s3-website-us-west-2.amazonaws.com/Durrell/pic_31.txt");
+
+  for(int i = 0; i < 1000; i++)
+  {
+    httpClient.connect("http://s3.eu-central-1.amazonaws.com/robtestbucket27/testfile-orig.txt");
+    Serial.printf("Iteration: %d ", i);
+    Serial.printf("Heap: %d ", ESP.getFreeHeap()); //35176
+    int counter = 0;
+    String s;
+    while(httpClient.available())
+    {
+      char c = httpClient.getChar();
+      if(c == '\n')
+      {
+        //Serial.printf("Line %d\n", counter++);
+        //Serial.println(s);
+        counter++;
+        //Serial.print(".");
+        //Serial.println(s.toInt());
+        //Serial.println(counter);
+        if(s.toInt() != counter)
+        {
+          Serial.printf("\nMismatch iteration: %d, line %d, expected: ", i, counter);
+          Serial.print(counter);
+          Serial.print(" got: ");
+          Serial.println(s.toInt());
+          delay(60000);
+        }
+        s = "";
+        //delay(2000);
+        yield();
+      } else {
+        s += c;
+      }
+    }
+    Serial.println("Done.");
   }
 }
 
