@@ -7,26 +7,22 @@
 HTTPRangeClient::HTTPRangeClient()
 {
   isConnected = false;
-  bufferSize = 4096;
+  bufferSize = 1024;
   maxRetries = 5;
   retryDelay = 100;
-  currentBuffer = 0;
-  bufferCurrentPosition = 0;
-  buffers[0] = buffer0;
-  buffers[1] = buffer1;
-  bufferState[0] = empty;
-  bufferState[1] = empty;
 }
 
 /*
   Used to setup a conection. The function does an initial request to check that
   the site supports byte range and returns false if it doesn't.
 */
-int HTTPRangeClient::connect(String urlName)
+bool HTTPRangeClient::begin(String urlName)
 {
   currentBuffer = 0;
   bufferCurrentPosition = 0;
   chunksDownloaded = 0;
+  buffers[0] = buffer0;
+  buffers[1] = buffer1;
   bufferState[0] = empty;
   bufferState[1] = empty;
   isConnected = false;
@@ -39,13 +35,8 @@ int HTTPRangeClient::connect(String urlName)
   http.begin(url);
   http.addHeader("Range", "bytes=0-0");
   http.collectHeaders(headerKeys, headerKeysSize);
-  // int httpCode = http.GET();
-  // if(httpCode != HTTP_CODE_PARTIAL_CONTENT)
-  // {
-  //   Serial.printf("Couldn't connect: %d", httpCode);
-  //   return 0;
-  // }
 
+  bool success = false;
   int retryCount;
   for(retryCount = 0; retryCount < maxRetries; retryCount++)
   {
@@ -53,12 +44,17 @@ int HTTPRangeClient::connect(String urlName)
     if(httpCode == HTTP_CODE_PARTIAL_CONTENT)
     {
       //Serial.print("!");
+      success = true;
       break;
     }
     Serial.printf("\n===>Connect got %d, retrying(%d)\n", httpCode, retryCount);
     delay(retryDelay * 2 ^ retryCount);
   }
 
+  if(!success)
+  {
+    return false;
+  }
   // Store useful info from headers
   String s = http.header("Content-Range");
   contentLength = s.substring(s.indexOf("/") + 1).toInt();
@@ -82,7 +78,7 @@ int HTTPRangeClient::connect(String urlName)
   chunksDownloaded = 0;
   isConnected = true;
   update();
-  return contentLength;
+  return true;
 }
 
 void HTTPRangeClient::update()

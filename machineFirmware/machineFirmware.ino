@@ -37,7 +37,6 @@ const int elbowServoPin = 5;
 const int penServoPin = 12;
 
 DrawingArm arm;
-HTTPRangeClient httpClient;
 
 ///wifi
 WiFiManager wifiManager;
@@ -54,7 +53,7 @@ void setup(void) {
   Serial.begin(115200);
   EEPROM.begin(512);
   Serial.println();
-  Serial.println(ESP.getChipId());
+  Serial.printf("ChipID: %d\n", ESP.getChipId());
 
   Serial.print("This version complied: ");
   Serial.print(compileDate);
@@ -93,6 +92,7 @@ void setup(void) {
   // Start TCP server.
   server.begin();
   socketPolicyServer.begin();
+  Serial.printf("Heap: %d\n", ESP.getFreeHeap());
   Serial.println("Start");
   //delay(1000);
 
@@ -109,9 +109,9 @@ void setup(void) {
     Serial.print("Doing and auto drawing number: ");
     int i = checkAutoDraw();
     Serial.println(i);
-    String fileName = "client/files/pic_" + String(i) + String(".txt");
+    String fileName = "/default/pic_" + String(i) + String(".txt");
     Serial.println(fileName);
-    downloadAndDraw1("robertpoll.com", fileName);
+    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", fileName);
     incrementAutoDraw();
     clearAbortFlag();
   } else {
@@ -121,49 +121,10 @@ void setup(void) {
   {
     setAbortFlag();
     Serial.println("Drawing default drawing");
-    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "default/pic_0.txt");
+    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "/default/pic_0.txt");
     clearAbortFlag();
   }
-  Serial.println(ESP.getFreeHeap());
-  //httpClient.connect("http://www.robertpoll.com/client/files/testfile-orig.txt");
-  //httpClient.connect("http://drawingmachine.s3-website-us-west-2.amazonaws.com/Durrell/pic_31.txt");
-
-  // for(int i = 0; i < 1000; i++)
-  // {
-  //   httpClient.connect("http://www.robertpoll.com/client/files/testfile-orig.txt");
-  //   //httpClient.connect("http://s3.eu-central-1.amazonaws.com/robtestbucket27/testfile-orig.txt");
-  //   Serial.printf("Iteration: %d ", i);
-  //   Serial.printf("Heap: %d ", ESP.getFreeHeap()); //35176
-  //   int counter = 0;
-  //   String s;
-  //   while(httpClient.available())
-  //   {
-  //     char c = httpClient.getChar();
-  //     if(c == '\n')
-  //     {
-  //       //Serial.printf("Line %d\n", counter++);
-  //       //Serial.println(s);
-  //       counter++;
-  //       //Serial.print(".");
-  //       //Serial.println(s.toInt());
-  //       //Serial.println(counter);
-  //       if(s.toInt() != counter)
-  //       {
-  //         Serial.printf("\nMismatch iteration: %d, line %d, expected: ", i, counter);
-  //         Serial.print(counter);
-  //         Serial.print(" got: ");
-  //         Serial.println(s.toInt());
-  //         delay(60000);
-  //       }
-  //       s = "";
-  //       //delay(2000);
-  //       yield();
-  //     } else {
-  //       s += c;
-  //     }
-  //   }
-  //   Serial.println("Done.");
-  // }
+  Serial.printf("Heap: %d\n", ESP.getFreeHeap());
 }
 
 void loop(void) {
@@ -280,51 +241,38 @@ int checkAbortFlag()
 int downloadAndDraw1(String website, String path)
 {
   HTTPRangeClient http;
-  String fullPath = "http://" + website + "/" + path;
+  String fullPath = "http://" + website + path;
   Serial.println(fullPath);
 
-  int httpCode = http.connect(fullPath);
-  if (httpCode > 0) {
-    // HTTP header has been send and Server response header has been handled
-    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
+  if (http.begin(fullPath)) {
     // file found at server
-    if (true) {
-      char c;
-      String thisLine;
-
-      bool done = false;
-      while (! done)
-      {
-        if ( http.available() ) {
-          char c = http.getChar();
-          thisLine += c;
-          if (c == '\n')
-          {
-            //Serial.print(thisLine);
-            parseFileLine(thisLine);
-            arm.fastMove(xValue, yValue, zValue);
-            thisLine = "";
-            //delay(30);
-          }
-          http.update();
-          yield();
-        } else {
-          // Serial.println("waiting");
-          // waitCounter++;
-          // delay(100);
-          return 0;
+    char c;
+    String thisLine;
+    bool done = false;
+    while (! done)
+    {
+      if ( http.available() ) {
+        char c = http.getChar();
+        thisLine += c;
+        if (c == '\n')
+        {
+          //Serial.print(thisLine);
+          parseFileLine(thisLine);
+          arm.fastMove(xValue, yValue, zValue);
+          thisLine = "";
+          //delay(30);
         }
+        http.update();
+        yield();
+      } else {
+        return 0;
+      }
 
-        // If the server has disconnected, stop the client and WiFi
-        if ( !http.connected() ) {
-          Serial.println();
-
-          // Close socket
-          //stream.stop();
-          Serial.printf("Finished AutoDrawing. waitCounter: %d secs\n", waitCounter / 10);
-          done = true;
-        }
+      // If the server has disconnected, stop the client and WiFi
+      if ( !http.connected() ) {
+        Serial.println();
+        Serial.printf("Finished AutoDrawing. waitCounter: %d secs\n", waitCounter / 10);
+        done = true;
       }
     }
   }

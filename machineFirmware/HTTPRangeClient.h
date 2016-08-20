@@ -10,7 +10,7 @@ class HTTPRangeClient
 {
   public:
     HTTPRangeClient();
-    int connect(String url);
+    bool begin(String url);
     void update();
     bool available();
     char getChar();
