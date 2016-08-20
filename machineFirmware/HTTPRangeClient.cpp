@@ -6,7 +6,7 @@
 
 HTTPRangeClient::HTTPRangeClient()
 {
-  connected = false;
+  isConnected = false;
   bufferSize = 4096;
   maxRetries = 5;
   retryDelay = 100;
@@ -29,7 +29,7 @@ int HTTPRangeClient::connect(String urlName)
   chunksDownloaded = 0;
   bufferState[0] = empty;
   bufferState[1] = empty;
-  connected = false;
+  isConnected = false;
 
   url = urlName;
 
@@ -80,14 +80,14 @@ int HTTPRangeClient::connect(String urlName)
   }
 
   chunksDownloaded = 0;
-  connected = true;
+  isConnected = true;
   update();
   return contentLength;
 }
 
 void HTTPRangeClient::update()
 {
-  if(! connected)
+  if(! isConnected)
   {
     return;
   }
@@ -174,7 +174,7 @@ char HTTPRangeClient::getChar()
     //Serial.print("X")
     if(bufContains[currentBuffer] == (numberOfChunks - 1))            // finished last chunk
     {
-      connected = false;
+      isConnected = false;
       Serial.printf("\nFinished last chunk: %d\n", numberOfChunks);
       return 0;
     }
@@ -192,4 +192,9 @@ char HTTPRangeClient::getChar()
     //bufferCurrentPosition++;
     return buffers[currentBuffer].charAt(bufferCurrentPosition++);
   }
+}
+
+bool HTTPRangeClient::connected()
+{
+  return isConnected;
 }
