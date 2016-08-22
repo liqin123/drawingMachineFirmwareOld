@@ -7,7 +7,7 @@
 HTTPRangeClient::HTTPRangeClient()
 {
   isConnected = false;
-  bufferSize = 1024;
+  bufferSize = 2048;
   maxRetries = 5;
   retryDelay = 100;
 }
@@ -40,7 +40,7 @@ bool HTTPRangeClient::begin(String urlName)
   int retryCount;
   for(retryCount = 0; retryCount < maxRetries; retryCount++)
   {
-    int httpCode = http.GET();
+    httpCode = http.GET();
     if(httpCode == HTTP_CODE_PARTIAL_CONTENT)
     {
       //Serial.print("!");
@@ -81,6 +81,36 @@ bool HTTPRangeClient::begin(String urlName)
   return true;
 }
 
+void HTTPRangeClient::end(void)
+{
+  currentBuffer = 0;
+  bufferCurrentPosition = 0;
+  chunksDownloaded = 0;
+  bufferState[0] = empty;
+  bufferState[1] = empty;
+  isConnected = false;
+}
+
+bool HTTPRangeClient::connected(void)
+{
+  return isConnected;
+}
+
+int HTTPRangeClient::GET(void)
+{
+  return httpCode;
+}
+
+int HTTPRangeClient::getSize(void)
+{
+  return contentLength;
+}
+
+String HTTPRangeClient::errorToString(int error)
+{
+  return HTTPClient::errorToString(error);
+}
+
 void HTTPRangeClient::update()
 {
   if(! isConnected)
@@ -90,29 +120,22 @@ void HTTPRangeClient::update()
 
   for(int i = 0; i < 2; i++)
   {
-    //Serial.printf("\nBuffer %d is %d\n", i, bufferState[i]);
     if(bufferState[i] == empty)
     {
       if(chunksDownloaded < numberOfChunks)
       {
-        //Serial.printf("\nFilling buffer %d with chunk %d\n", i, chunksDownloaded);
         fillBuffer(i, chunksDownloaded * bufferSize);
-        bufContains[i] = chunksDownloaded;
-        chunksDownloaded++;
+        bufContains[i] = chunksDownloaded++;
         if(chunksDownloaded == numberOfChunks)
         {
           if(lastChunkPartial)
           {
             bufferState[i] = partial;
-            //Serial.println("Buffer is partial");
           } else {
             bufferState[i] = full;
           }
         }
       }
-    } else {
-      //Serial.print("#");
-      //return;
     }
   }
 }
@@ -126,6 +149,7 @@ int HTTPRangeClient::fillBuffer(int buf, int start)
   http.addHeader("Range", String("bytes=") + String(start) + String("-") + String(start + bufferSize - 1));
   http.collectHeaders(headerKeys, headerKeysSize);
 
+  bool success = false;
   int retryCount;
   for(retryCount = 0; retryCount < maxRetries; retryCount++)
   {
@@ -133,20 +157,21 @@ int HTTPRangeClient::fillBuffer(int buf, int start)
     if(httpCode == HTTP_CODE_PARTIAL_CONTENT)
     {
       //Serial.print("!");
+      success = true;
       break;
     }
-    Serial.printf("\n===>Got %d, retrying(%d)\n", httpCode, retryCount);
+    //Serial.printf("\n===>Got %d, retrying(%d)\n", httpCode, retryCount);
     delay(retryDelay * 2 ^ retryCount);
   }
-
-  if(http.header("Content-Length").toInt() != bufferSize)
+  if(success)
   {
-    //Serial.println("Partial Buffer");
+    buffers[buf] = http.getString();
+    bufferState[buf] = full;
+    http.end();
+    return 0;
+  } else {
+    return httpCode;
   }
-  buffers[buf] = http.getString();
-  bufferState[buf] = full;
-  http.end();
-  return 1;
 }
 
 bool HTTPRangeClient::available()
@@ -163,7 +188,7 @@ bool HTTPRangeClient::available()
 
 char HTTPRangeClient::getChar()
 {
-  if(bufferCurrentPosition < buffers[currentBuffer].length())
+  if(bufferState[currentBuffer] != empty && bufferCurrentPosition < buffers[currentBuffer].length())
   {
     return buffers[currentBuffer].charAt(bufferCurrentPosition++);  // data left in current buffer
   } else {
@@ -188,9 +213,4 @@ char HTTPRangeClient::getChar()
     //bufferCurrentPosition++;
     return buffers[currentBuffer].charAt(bufferCurrentPosition++);
   }
-}
-
-bool HTTPRangeClient::connected()
-{
-  return isConnected;
 }

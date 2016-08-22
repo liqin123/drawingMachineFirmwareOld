@@ -11,10 +11,16 @@ class HTTPRangeClient
   public:
     HTTPRangeClient();
     bool begin(String url);
+    void end(void);
+    bool connected(void);
+    int GET(void);
+    int getSize(void);
+    static String errorToString(int error);
+
     void update();
     bool available();
     char getChar();
-    bool connected();
+
 
   private:
     int fillBuffer(int buf, int start);
@@ -44,6 +50,7 @@ class HTTPRangeClient
     int bufferSize;
     int currentBuffer;
     int bufferCurrentPosition;
+    int httpCode;
 };
 
 #endif

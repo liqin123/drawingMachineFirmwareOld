@@ -111,7 +111,7 @@ void setup(void) {
     Serial.println(i);
     String fileName = "/default/pic_" + String(i) + String(".txt");
     Serial.println(fileName);
-    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", fileName);
+    downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", fileName);
     incrementAutoDraw();
     clearAbortFlag();
   } else {
@@ -121,7 +121,7 @@ void setup(void) {
   {
     setAbortFlag();
     Serial.println("Drawing default drawing");
-    downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "/default/pic_0.txt");
+    downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", "/default/pic_0.txt");
     clearAbortFlag();
   }
   Serial.printf("Heap: %d\n", ESP.getFreeHeap());
@@ -238,7 +238,7 @@ int checkAbortFlag()
   return EEPROM.read(eepromAbortFlag);
 }
 
-int downloadAndDraw1(String website, String path)
+int downloadAndDraw(String website, String path)
 {
   HTTPRangeClient http;
   String fullPath = "http://" + website + path;
@@ -246,6 +246,7 @@ int downloadAndDraw1(String website, String path)
 
   if (http.begin(fullPath)) {
     // file found at server
+    Serial.printf("DownloadAndDraw: Heap: %d\n", ESP.getFreeHeap());
     char c;
     String thisLine;
     bool done = false;
@@ -330,18 +331,6 @@ void doGesture(int gesture)
 
     case 7 :
       gestureInfinity(1);
-      break;
-
-    case 10:
-      downloadAndDraw1("drawingmachine.s3-website-us-west-2.amazonaws.com", "Durrell/pic_31.txt");
-      break;
-
-    case 11:
-      downloadAndDraw1("www.robertpoll.com", "client/files/pic_31.txt");
-      break;
-
-    case 12:
-      downloadAndDraw1("192.168.0.36", "pic_31.txt");
       break;
 
     //set AutoDraw
