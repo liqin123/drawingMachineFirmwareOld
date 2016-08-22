@@ -8,10 +8,10 @@ DrawingArm::DrawingArm()
 {
   armLength = 1000;
   homePosition = {1000, 1000, 1000};
-  servoMinMicroseconds = {690, 690, 690};     //MG90D for arms, MG90S for pen
-  servoMaxMicroseconds = {2520, 2520, 2520};
-  servoMinAngles = {5, 5, 0};
-  servoMaxAngles = {175, 175, 180};
+  servoMinMicroseconds = {710, 710, 700};     //MG90D for arms, MG90S for pen
+  servoMaxMicroseconds = {2290, 2290, 2500};
+  servoMinAngles = {13, 13, 4};
+  servoMaxAngles = {167, 167, 176};
   servoDeadbandMicroseconds = {2, 2, 2};
   minimumMoveTime = 30;                          // milliseconds
   servoMoveRates = {500, 500, 500};              // degrees per second. Datasheet says 600, but seems a bit fast.
