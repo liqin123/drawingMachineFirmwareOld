@@ -6,6 +6,8 @@
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
 
+enum class HTTPState {disconnected, connected, eof, error};
+
 class HTTPRangeClient
 {
   public:
@@ -20,7 +22,7 @@ class HTTPRangeClient
     void update();
     bool available();
     char getChar();
-
+    HTTPState status();
 
   private:
     int fillBuffer(int buf, int start);
@@ -28,10 +30,10 @@ class HTTPRangeClient
     enum bufState {empty, partial, full};
     enum bufLast {last, notLast};
 
-    bool isConnected;
     int numberOfChunks;
     bool lastChunkPartial;
     int chunksDownloaded;
+    HTTPState state;
 
     HTTPClient http;
     String url;

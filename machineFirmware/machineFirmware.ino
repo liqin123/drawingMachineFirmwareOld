@@ -241,6 +241,7 @@ int checkAbortFlag()
 int downloadAndDraw(String website, String path)
 {
   HTTPRangeClient http;
+  
   String fullPath = "http://" + website + path;
   Serial.println(fullPath);
 

@@ -6,7 +6,7 @@
 
 HTTPRangeClient::HTTPRangeClient()
 {
-  isConnected = false;
+  state = HTTPState::disconnected;
   bufferSize = 2048;
   maxRetries = 5;
   retryDelay = 100;
@@ -25,7 +25,7 @@ bool HTTPRangeClient::begin(String urlName)
   buffers[1] = buffer1;
   bufferState[0] = empty;
   bufferState[1] = empty;
-  isConnected = false;
+  state = HTTPState::disconnected;
 
   url = urlName;
 
@@ -76,7 +76,7 @@ bool HTTPRangeClient::begin(String urlName)
   }
 
   chunksDownloaded = 0;
-  isConnected = true;
+  state = HTTPState::connected;
   update();
   return true;
 }
@@ -88,12 +88,17 @@ void HTTPRangeClient::end(void)
   chunksDownloaded = 0;
   bufferState[0] = empty;
   bufferState[1] = empty;
-  isConnected = false;
+  state = HTTPState::disconnected;
 }
 
 bool HTTPRangeClient::connected(void)
 {
-  return isConnected;
+  if(state == HTTPState::connected)
+  {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 int HTTPRangeClient::GET(void)
@@ -113,7 +118,7 @@ String HTTPRangeClient::errorToString(int error)
 
 void HTTPRangeClient::update()
 {
-  if(! isConnected)
+  if(state != HTTPState::connected)
   {
     return;
   }
@@ -170,6 +175,7 @@ int HTTPRangeClient::fillBuffer(int buf, int start)
     http.end();
     return 0;
   } else {
+    state = HTTPState::error;
     return httpCode;
   }
 }
@@ -188,6 +194,11 @@ bool HTTPRangeClient::available()
 
 char HTTPRangeClient::getChar()
 {
+  if(state == HTTPState::error || state == HTTPState::eof)
+  {
+    return 0;
+  }
+
   if(bufferState[currentBuffer] != empty && bufferCurrentPosition < buffers[currentBuffer].length())
   {
     return buffers[currentBuffer].charAt(bufferCurrentPosition++);  // data left in current buffer
@@ -195,7 +206,7 @@ char HTTPRangeClient::getChar()
     //Serial.print("X")
     if(bufContains[currentBuffer] == (numberOfChunks - 1))            // finished last chunk
     {
-      isConnected = false;
+      state = HTTPState::eof;
       Serial.printf("\nFinished last chunk: %d\n", numberOfChunks);
       return 0;
     }
@@ -213,4 +224,9 @@ char HTTPRangeClient::getChar()
     //bufferCurrentPosition++;
     return buffers[currentBuffer].charAt(bufferCurrentPosition++);
   }
+}
+
+HTTPState HTTPRangeClient::status()
+{
+  return state;
 }
