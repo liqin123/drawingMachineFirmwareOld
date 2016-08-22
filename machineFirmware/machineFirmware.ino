@@ -241,7 +241,7 @@ void loop(void) {
           //Serial.println(String("gesture") += gestureValue);
           if(gestureValue == 30)
           {
-            client.println("OK");
+            client.print("[OK]\0");
           } else {
             doGesture(gestureValue);
           }
