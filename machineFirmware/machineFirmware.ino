@@ -195,7 +195,8 @@ void loop(void) {
           //Serial.println(String("gesture") += gestureValue);
           if(gestureValue == 30)
           {
-            client.println("OK");
+            char c[] = "OK";
+            client.write((char *) &c, 3);
           } else {
             doGesture(gestureValue);
           }
@@ -241,7 +242,7 @@ int checkAbortFlag()
 int downloadAndDraw(String website, String path)
 {
   HTTPRangeClient http;
-  
+
   String fullPath = "http://" + website + path;
   Serial.println(fullPath);
 

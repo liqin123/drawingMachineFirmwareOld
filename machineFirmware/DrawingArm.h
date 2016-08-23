@@ -4,7 +4,7 @@
 #ifndef DrawingArm_h
 #define DrawingArm_h
 #include <Arduino.h>
-#include <Servo.h>
+#include "Servo.h"
 
 typedef struct
 {
