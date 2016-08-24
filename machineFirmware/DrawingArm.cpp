@@ -122,7 +122,22 @@ void DrawingArm::draw(float x, float y, float z)
   Serial.print(z);
   Serial.print(" ");
 
-  // what kind of move is this?
+  if(lastPosition.z > 500 && pos.z < 500)
+  {
+    //pen down and move, so pen down, then move
+    Serial.print(" Pen down and move ");
+    move(lastPosition.x, lastPosition.y, pos.z, penUpSpeed);
+    move(pos.x, pos.y, pos.z, defaultSpeed);
+  }
+
+  if(lastPosition.z < 500 && pos.z > 500)
+  {
+    //pen up and move, so pen up, then move
+    Serial.print(" Pen up and move ");
+    move(lastPosition.x, lastPosition.y, pos.z, penUpSpeed);
+    move(pos.x, pos.y, pos.z, defaultSpeed);
+  }
+
   if(lastPosition.z > 500 && pos.z > 500)
   {
     // pen up move
