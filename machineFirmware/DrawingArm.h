@@ -4,7 +4,7 @@
 #ifndef DrawingArm_h
 #define DrawingArm_h
 #include <Arduino.h>
-#include "Servo.h"
+#include <Servo.h>
 
 typedef struct
 {
@@ -40,6 +40,7 @@ class DrawingArm
     DrawingArm();
     void attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin);
     uint8_t fastMove(float x, float y, float z);
+    uint8_t move(float x, float y, float z, int speed);
     unsigned long isMoveDone(bool block);
     void home();
     void pen(float z);

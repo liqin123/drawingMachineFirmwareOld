@@ -181,9 +181,8 @@ void loop(void) {
           Serial.print("Received: ");
           Serial.println(req);
           parseString(req, Num);
-          arm.fastMove(xValue, yValue, zValue);
-          //fastMove(xValue, yValue, zValue);
-          //delay(30);
+          //rm.fastMove(xValue, yValue, zValue);
+          arm.move(xValue, yValue, zValue, 10);
           lineDone = true;
         }
 
@@ -261,8 +260,10 @@ int downloadAndDraw(String website, String path)
         {
           //Serial.print(thisLine);
           parseFileLine(thisLine);
-          arm.fastMove(xValue, yValue, zValue);
+          //arm.fastMove(xValue, yValue, zValue);
+          arm.move(xValue, yValue, zValue, 3);
           thisLine = "";
+          delay(30);
           //delay(30);
         }
         http.update();
@@ -375,6 +376,10 @@ void doGesture(int gesture)
       Serial.println("Default AutoDraw set");
       EEPROM.write(eepromAutoFlag, 29);
       EEPROM.commit();
+      break;
+
+    case 50:
+      downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", "/default/pic_0.txt");
       break;
 
     case 40:

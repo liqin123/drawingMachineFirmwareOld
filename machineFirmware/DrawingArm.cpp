@@ -45,20 +45,20 @@ void DrawingArm::attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t
 uint8_t DrawingArm::fastMove(float x, float y, float z)
 {
   coordinate_t pos = {x, y, z};
-  Serial.print("DrawingArm: ");
-  Serial.print(x);
-  Serial.print(",");
-  Serial.print(y);
-  Serial.print(",");
-  Serial.println(z);
+  // Serial.print("fastMove: ");
+  // Serial.print(x);
+  // Serial.print(",");
+  // Serial.print(y);
+  // Serial.print(",");
+  // Serial.println(z);
 
   uint8_t limitReached;
   // check that the reach is OK
   pos = checkReach(pos, limitReached);
   if(limitReached)
   {
-    Serial.print("Reach limit: ");
-    Serial.println(limitReached);
+    //Serial.print("Reach limit: ");
+    //Serial.println(limitReached);
   }
 
   // compute arm angles and check
@@ -66,8 +66,8 @@ uint8_t DrawingArm::fastMove(float x, float y, float z)
   angles = checkAngles(angles, limitReached);
   if(limitReached)
   {
-    Serial.print("Angles limit: ");
-    Serial.println(limitReached);
+    //Serial.print("Angles limit: ");
+    //Serial.println(limitReached);
   }
 
   servoMicroseconds_t micros = anglesToMicroseconds(angles);
@@ -76,6 +76,37 @@ uint8_t DrawingArm::fastMove(float x, float y, float z)
   lastPosition = pos;
   lastServoAngle = angles;
   lastServoMicroseconds = micros;
+}
+
+uint8_t DrawingArm::move(float x, float y, float z, int stepSize)
+{
+   coordinate_t pos = {x, y, z};
+  Serial.print("move: ");
+  Serial.print(x);
+  Serial.print(",");
+  Serial.print(y);
+  Serial.print(",");
+  Serial.print(z);
+  Serial.print(" ");
+
+  float distanceMoved = sqrt(sq(lastPosition.x - pos.x) + sq(lastPosition.y - pos.y));
+  //Serial.println(distanceMoved);
+  uint8_t steps = int(distanceMoved/stepSize + 0.5);
+  Serial.println(steps);
+  if(steps <= 1)
+  {
+    fastMove(x, y, z);
+  } else {
+    coordinate_t originalPosition = lastPosition;
+    float deltaX = (pos.x - lastPosition.x) / steps;
+    float deltaY = (pos.y - lastPosition.y) / steps;
+    //Serial.println(deltaX);
+    //Serial.println(deltaY);
+    for(int i = 1; i <= steps; i++)
+    {
+      fastMove(originalPosition.x + deltaX * i, originalPosition.y + deltaY * i, z);
+    }
+  }
 }
 
 servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
@@ -107,12 +138,12 @@ servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
   //servoAngles.shoulder = 180 - servoAngles.shoulder;                    // Shoulder servo is inverted, so adjust angle
 
   servoAngles.pen = position.z /1000 * (servoMaxAngles.pen - servoMinAngles.pen) + servoMinAngles.pen;
-    Serial.print("servoAngles: ");
-    Serial.print(servoAngles.shoulder);
-    Serial.print(",");
-    Serial.print(servoAngles.elbow);
-    Serial.print(",");
-    Serial.println(servoAngles.pen);
+    // Serial.print("servoAngles: ");
+    // Serial.print(servoAngles.shoulder);
+    // Serial.print(",");
+    // Serial.print(servoAngles.elbow);
+    // Serial.print(",");
+    // Serial.println(servoAngles.pen);
   return servoAngles;
 }
 
@@ -120,20 +151,11 @@ servoMicroseconds_t DrawingArm::anglesToMicroseconds(servoAngles_t angles)
 {
   servoMicroseconds_t micros;
 
-  // uint16_t shoulderMicrosecondsRange = servoMaxMicroseconds.shoulder - servoMinMicroseconds.shoulder;
-  // micros.shoulder = (servoMaxAngles.shoulder - angles.shoulder) / servoMaxAngles.shoulder * shoulderMicrosecondsRange + servoMinMicroseconds.shoulder;
-  //
-  // uint16_t elbowMicrosecondsRange = servoMaxMicroseconds.elbow - servoMinMicroseconds.elbow;
-  // micros.elbow = (servoMaxAngles.elbow - angles.elbow) / servoMaxAngles.elbow * elbowMicrosecondsRange + servoMinMicroseconds.elbow;
-  //
-  // uint16_t penMicrosecondsRange = servoMaxMicroseconds.pen - servoMinMicroseconds.pen;
-  // micros.pen = angles.pen / servoMaxAngles.pen * penMicrosecondsRange + servoMinMicroseconds.pen;
-
   micros.shoulder = (180 - angles.shoulder - servoMinAngles.shoulder) * servoMicrosecondsPerDegree.shoulder + servoMinMicroseconds.shoulder;
   micros.elbow = (180 - angles.elbow - servoMinAngles.elbow) * servoMicrosecondsPerDegree.elbow + servoMinMicroseconds.elbow;
   micros.pen = (angles.pen - servoMinAngles.pen) * servoMicrosecondsPerDegree.pen + servoMinMicroseconds.pen;
 
-  Serial.printf("anglesToMicroseconds: %d, %d, %d\n", micros.shoulder, micros.elbow, micros.pen);
+  //Serial.printf("anglesToMicroseconds: %d, %d, %d\n", micros.shoulder, micros.elbow, micros.pen);
   return micros;
 }
 
@@ -225,13 +247,13 @@ unsigned long DrawingArm::isMoveDone(bool block)
 
   if(block)
   {
-    Serial.print("isMoveDone blocking: ");
-    Serial.println(timeRemaining);
+    //Serial.print("isMoveDone blocking: ");
+    //Serial.println(timeRemaining);
     delay(timeRemaining);
     return 0;
   } else {
-    Serial.print("isMoveDone nonBlocking: ");
-    Serial.println(timeRemaining);
+    //Serial.print("isMoveDone nonBlocking: ");
+    //Serial.println(timeRemaining);
     return timeRemaining;
   }
 }
