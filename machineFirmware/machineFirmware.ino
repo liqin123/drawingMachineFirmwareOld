@@ -4,7 +4,6 @@
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
-#include <Servo.h>
 #include <ESP8266HTTPClient.h>
 #include <EEPROM.h>
 #include <ESP8266httpUpdate.h>
@@ -35,6 +34,8 @@ const int SWITCH_PIN = 0;
 const int shoulderServoPin = 4;
 const int elbowServoPin = 5;
 const int penServoPin = 12;
+
+const int moveSpeed = 2;
 
 DrawingArm arm;
 
@@ -178,11 +179,11 @@ void loop(void) {
         Num = req.indexOf('x');// has to be an x
         if (Num > 0)
         {
-          Serial.print("Received: ");
-          Serial.println(req);
+          //Serial.print("Received: ");
+          //Serial.println(req);
           parseString(req, Num);
           //rm.fastMove(xValue, yValue, zValue);
-          arm.move(xValue, yValue, zValue, 10);
+          arm.draw(xValue, yValue, zValue);
           lineDone = true;
         }
 
@@ -261,7 +262,7 @@ int downloadAndDraw(String website, String path)
           //Serial.print(thisLine);
           parseFileLine(thisLine);
           //arm.fastMove(xValue, yValue, zValue);
-          arm.move(xValue, yValue, zValue, 3);
+          arm.draw(xValue, yValue, zValue);
           thisLine = "";
           delay(30);
           //delay(30);
@@ -269,6 +270,7 @@ int downloadAndDraw(String website, String path)
         http.update();
         yield();
       } else {
+        arm.home();
         return 0;
       }
 

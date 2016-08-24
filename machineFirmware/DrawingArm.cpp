@@ -7,14 +7,16 @@
 DrawingArm::DrawingArm()
 {
   armLength = 1000;
-  homePosition = {1000, 1000, 1000};
+  homePosition = {1414, 0, 1000};
   servoMinMicroseconds = {710, 710, 700};     //MG90D for arms, MG90S for pen
-  servoMaxMicroseconds = {2290, 2290, 2500};
+  servoMaxMicroseconds = {2290, 2290, 2400};
   servoMinAngles = {13, 13, 4};
   servoMaxAngles = {167, 167, 176};
   servoDeadbandMicroseconds = {2, 2, 2};
-  minimumMoveTime = 30;                          // milliseconds
+  minimumMoveTime = 4;                          // milliseconds
   servoMoveRates = {500, 500, 500};              // degrees per second. Datasheet says 600, but seems a bit fast.
+  penUpSpeed = 30;
+  defaultSpeed = 2;
 
   armHomePositionAngle = 45.0;
   minReach = 350;
@@ -42,7 +44,7 @@ void DrawingArm::attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t
   Serial.println(servoMicrosecondsMoveRate.shoulder);
 }
 
-uint8_t DrawingArm::fastMove(float x, float y, float z)
+void DrawingArm::fastMove(float x, float y, float z)
 {
   coordinate_t pos = {x, y, z};
   // Serial.print("fastMove: ");
@@ -78,16 +80,16 @@ uint8_t DrawingArm::fastMove(float x, float y, float z)
   lastServoMicroseconds = micros;
 }
 
-uint8_t DrawingArm::move(float x, float y, float z, int stepSize)
+void DrawingArm::move(float x, float y, float z, int stepSize)
 {
    coordinate_t pos = {x, y, z};
-  Serial.print("move: ");
-  Serial.print(x);
-  Serial.print(",");
-  Serial.print(y);
-  Serial.print(",");
-  Serial.print(z);
-  Serial.print(" ");
+  // Serial.print("move: ");
+  // Serial.print(x);
+  // Serial.print(",");
+  // Serial.print(y);
+  // Serial.print(",");
+  // Serial.print(z);
+  // Serial.print(" ");
 
   float distanceMoved = sqrt(sq(lastPosition.x - pos.x) + sq(lastPosition.y - pos.y));
   //Serial.println(distanceMoved);
@@ -107,6 +109,28 @@ uint8_t DrawingArm::move(float x, float y, float z, int stepSize)
       fastMove(originalPosition.x + deltaX * i, originalPosition.y + deltaY * i, z);
     }
   }
+}
+
+void DrawingArm::draw(float x, float y, float z)
+{
+  coordinate_t pos = {x, y, z};
+  Serial.print("draw: ");
+  Serial.print(x);
+  Serial.print(",");
+  Serial.print(y);
+  Serial.print(",");
+  Serial.print(z);
+  Serial.print(" ");
+
+  // what kind of move is this?
+  if(lastPosition.z > 500 && pos.z > 500)
+  {
+    // pen up move
+    Serial.print(" Pen up move ");
+    move(pos.x, pos.y, pos.z, penUpSpeed);
+    return;
+  }
+  move(pos.x, pos.y, pos.z, defaultSpeed);
 }
 
 servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
@@ -226,7 +250,7 @@ void DrawingArm::home()
   // so need to access servo directly
   penServo.writeMicroseconds(anglesToMicroseconds(positionToAngles(homePosition)).pen);
   delay(700); // TODO put in proper delay
-  fastMove(homePosition.x, homePosition.y, homePosition.z);
+  move(homePosition.x, homePosition.y, homePosition.z, penUpSpeed);
 }
 
 void DrawingArm::pen(float z)

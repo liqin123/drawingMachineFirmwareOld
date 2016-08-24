@@ -5,6 +5,7 @@
 #define DrawingArm_h
 #include <Arduino.h>
 #include <Servo.h>
+#include "PWMServo.h"
 
 typedef struct
 {
@@ -39,8 +40,9 @@ class DrawingArm
   public:
     DrawingArm();
     void attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin);
-    uint8_t fastMove(float x, float y, float z);
-    uint8_t move(float x, float y, float z, int speed);
+    void fastMove(float x, float y, float z);
+    void move(float x, float y, float z, int stepSize);
+    void draw(float x, float y, float z);
     unsigned long isMoveDone(bool block);
     void home();
     void pen(float z);
@@ -54,7 +56,9 @@ class DrawingArm
     servoMicroseconds_t servoDeadbandMicroseconds;
     servoAngles_t servoMoveRates;
     servoMicroseconds_t servoMicrosecondsMoveRate;
-    unsigned long minimumMoveTime;
+    uint8_t minimumMoveTime;
+    uint8_t penUpSpeed;
+    uint8_t defaultSpeed;
 
     int armLength;
     coordinate_t homePosition;
@@ -62,8 +66,8 @@ class DrawingArm
     uint16_t minReach;
     uint16_t maxReach;
 
-    Servo shoulderServo;
-    Servo elbowServo;
+    PWMServo shoulderServo;
+    PWMServo elbowServo;
     Servo penServo;
 
     coordinate_t lastPosition;
@@ -78,6 +82,7 @@ class DrawingArm
     servoAngles_t checkAngles(servoAngles_t servoAngles, uint8_t &limitReached);
     void writeToServos(servoMicroseconds_t servoMicroseconds);
     unsigned long calculateMoveTime(servoMicroseconds_t servoMicroseconds);
+
 };
 
 #endif
