@@ -384,11 +384,9 @@ void doGesture(int gesture)
       }
       break;
 
-    //Update firmware
     case 99 :
       Serial.println("Updating firmware...");
       ESPhttpUpdate.update("www.robertpoll.com", 80, "/client/files/firmware.bin");
-      //ESPhttpUpdate.update("raw.githubusercontent.com", 80, "/robertpoll/drawingMachine/master/machineFirmware/.pioenvs/huzzah/firmware.bin");
       Serial.println("Firmware update failed.");
       break;
   }
@@ -475,20 +473,16 @@ void parseFileLine(String req)
 }
 
 void parseString(String req, int letterOffset) {
-  //"A  B  C"
+
   int fromNum = 0;
 
-  //Serial.println("parse");
-  //Serial.println(req.substring(fromNum, letterOffset));
   xValue = req.substring(fromNum, letterOffset).toFloat();
   fromNum = letterOffset;
-  //Serial.println(xValue);
 
   letterOffset = req.indexOf("y");
   if (letterOffset > 0)
   {
     yValue = req.substring(fromNum + 1, letterOffset).toFloat();
-    //Serial.println(yValue);
     fromNum = letterOffset;
   }
 
@@ -496,7 +490,6 @@ void parseString(String req, int letterOffset) {
   if (letterOffset > 0)
   {
     zValue = req.substring(fromNum + 1, letterOffset).toFloat();
-    //Serial.println(zValue);
     fromNum = letterOffset;
   }
 }
