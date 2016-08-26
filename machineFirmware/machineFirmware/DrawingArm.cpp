@@ -81,7 +81,7 @@ void DrawingArm::move(float x, float y, float z, int stepSize)
 
   float distanceMoved = distance(lastPosition, pos);
   uint8_t steps = int(distanceMoved/stepSize + 0.5);
-  Serial.println(steps);
+  //Serial.println(steps);
   if(steps <= 1)
   {
     fastMove(x, y, z);

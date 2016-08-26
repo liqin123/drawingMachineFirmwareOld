@@ -9,6 +9,7 @@
 #include <ESP8266httpUpdate.h>
 #include "DrawingArm.h"
 #include "HTTPRangeClient.h"
+#include "CommandParser.h"
 
 String compileTime = __TIME__;
 String compileDate = __DATE__;
@@ -58,10 +59,19 @@ void setup(void) {
   Serial.print(compileDate);
   Serial.print(" ");
   Serial.println(compileTime);
-  delay(2000);
   arm.attach(shoulderServoPin, elbowServoPin, penServoPin);
 
   arm.home();
+
+  HTTPRangeClient c;
+  c.begin("http://robertpoll.com/client/files/testfile.gcode");
+  CommandParser parser(c);
+  std::vector<String> vs = parser.getCommand();
+  for(String& str : vs)
+  {
+  //String str = vs[0];
+    Serial.println(str);
+  }
 
   if (!wifiManager.autoConnect()) {
     Serial.println("failed to connect and hit timeout");
