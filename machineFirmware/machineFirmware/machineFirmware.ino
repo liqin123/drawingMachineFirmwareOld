@@ -100,7 +100,6 @@ void setup(void) {
 
   if(checkAbortFlag())
   {
-    Serial.println("Autodraw was aborted - clearing");
     doGesture(21);
     clearAbortFlag();
   }
@@ -108,25 +107,19 @@ void setup(void) {
   if (checkAutoDraw())
   {
     setAbortFlag();
-    Serial.print("Doing and auto drawing number: ");
     int i = checkAutoDraw();
-    Serial.println(i);
     String fileName = "/default/pic_" + String(i) + String(".txt");
-    Serial.println(fileName);
     downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", fileName);
     incrementAutoDraw();
     clearAbortFlag();
-  } else {
-    Serial.println("No Auto Drawing");
   }
+
   if (EEPROM.read(eepromAutoFlag) == 29)
   {
     setAbortFlag();
-    Serial.println("Drawing default drawing");
     downloadAndDraw("drawingmachine.s3-website-us-west-2.amazonaws.com", "/default/pic_0.txt");
     clearAbortFlag();
   }
-  Serial.printf("Heap: %d\n", ESP.getFreeHeap());
 }
 
 void loop(void) {
@@ -193,7 +186,6 @@ void loop(void) {
         if (gCmd > 0)
         {
           int gestureValue = req.substring(0, gCmd).toInt();
-          //Serial.println(String("gesture") += gestureValue);
           if(gestureValue == 30)
           {
             char c[] = "OK";
@@ -215,28 +207,24 @@ void loop(void) {
     // Client has disconnected
     Serial.println("Client disconnected.");
     client.stop();
-    //liftAndHome();
     arm.home();
   }
 }
 
 void setAbortFlag()
 {
-  Serial.println("set abort flag");
   EEPROM.write(eepromAbortFlag, 1);
   EEPROM.commit();
 }
 
 void clearAbortFlag()
 {
-  Serial.println("clear abort flag");
   EEPROM.write(eepromAbortFlag, 0);
   EEPROM.commit();
 }
 
 int checkAbortFlag()
 {
-  Serial.printf("Abort flag = %d\n", EEPROM.read(eepromAbortFlag));
   return EEPROM.read(eepromAbortFlag);
 }
 
@@ -249,7 +237,8 @@ int downloadAndDraw(String website, String path)
 
   if (http.begin(fullPath)) {
     // file found at server
-    Serial.printf("DownloadAndDraw: Heap: %d\n", ESP.getFreeHeap());
+    Serial.print("DownloadAndDraw: ");
+    Serial.println(fullPath);
     char c;
     String thisLine;
     bool done = false;
@@ -277,28 +266,22 @@ int downloadAndDraw(String website, String path)
 
       // If the server has disconnected, stop the client and WiFi
       if ( !http.connected() ) {
-        Serial.println();
-        Serial.printf("Finished AutoDrawing. waitCounter: %d secs\n", waitCounter / 10);
         done = true;
       }
     }
   }
-  Serial.println("File Done..");
 }
 
 int checkAutoDraw()
 {
   if (EEPROM.read(eepromAutoFlag) != 27 && EEPROM.read(eepromAutoFlag) != 28)
   {
-    Serial.println("AutoDraw never set");
     return (0);
   } else {
     if (EEPROM.read(eepromAutoFlag) == 28)
     {
-      Serial.printf("Autodraw count returning %d\n", EEPROM.read(eepromAutoCount));
       return EEPROM.read(eepromAutoCount);
     } else {
-      Serial.println("Autodraw not set");
       return (0);
     }
   }
@@ -306,7 +289,6 @@ int checkAutoDraw()
 
 int incrementAutoDraw()
 {
-  Serial.print("Incrementing eepromAutoCount to: ");
   if (EEPROM.read(eepromAutoCount) == 366)
   {
     EEPROM.write(eepromAutoCount, 1);
@@ -501,30 +483,5 @@ void parseString(String req, int letterOffset) {
   {
     zValue = req.substring(fromNum + 1, letterOffset).toFloat();
     fromNum = letterOffset;
-  }
-}
-
-void printWiFiStatus() {
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(WiFi.SSID());
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-}
-
-void keepConnected() {
-  if (WiFi.status() != WL_CONNECTED) {
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print("waiting - Wifi.status=");
-      Serial.println(WiFi.status());
-    }
-    // Print the new IP to Serial.
-    Serial.println("I have connected to a wifi and will print my IP");
-    printWiFiStatus();
-    if (!MDNS.begin("esp8266")) {
-      Serial.println("Error setting up MDNS responder!");
-    }
-    Serial.println("mDNS responder started");
   }
 }
