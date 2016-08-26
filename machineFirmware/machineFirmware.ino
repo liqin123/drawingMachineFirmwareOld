@@ -54,16 +54,13 @@ void setup(void) {
   Serial.begin(115200);
   EEPROM.begin(512);
   Serial.println();
-  Serial.printf("ChipID: %d\n", ESP.getChipId());
-
   Serial.print("This version complied: ");
   Serial.print(compileDate);
   Serial.print(" ");
   Serial.println(compileTime);
-
+  delay(2000);
   arm.attach(shoulderServoPin, elbowServoPin, penServoPin);
 
-  //liftAndHome();
   arm.home();
 
   if (!wifiManager.autoConnect()) {
@@ -76,8 +73,6 @@ void setup(void) {
   //Start a SoftAP...?
      WiFi.softAP(APssid, APpassword);
      IPAddress myIP = WiFi.softAPIP();
-     Serial.print("AP IP address: ");
-     Serial.println(myIP);
      //Start a proper DNS server as mDNS doesn't work in AP mode.
      dnsServer.setTTL(300);
      dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
@@ -86,16 +81,12 @@ void setup(void) {
   //  //Start mDNS
   if (!MDNS.begin("esp8266")) {
     Serial.println("Error setting up MDNS responder!");
-  } else {
-    Serial.println("mDNS responder started");
   }
+
   MDNS.addService("drawing", "tcp", 1337);
   // Start TCP server.
   server.begin();
   socketPolicyServer.begin();
-  Serial.printf("Heap: %d\n", ESP.getFreeHeap());
-  Serial.println("Start");
-  //delay(1000);
 
   if(checkAbortFlag())
   {
@@ -179,10 +170,10 @@ void loop(void) {
         Num = req.indexOf('x');// has to be an x
         if (Num > 0)
         {
-          //Serial.print("Received: ");
-          //Serial.println(req);
+          Serial.print("Received: ");
+          Serial.println(req);
           parseString(req, Num);
-          //rm.fastMove(xValue, yValue, zValue);
+
           arm.draw(xValue, yValue, zValue);
           lineDone = true;
         }

@@ -82,6 +82,7 @@ class DrawingArm
     servoAngles_t checkAngles(servoAngles_t servoAngles, uint8_t &limitReached);
     void writeToServos(servoMicroseconds_t servoMicroseconds);
     unsigned long calculateMoveTime(servoMicroseconds_t servoMicroseconds);
+    float distance(coordinate_t point1, coordinate_t point2);
 
 };
 

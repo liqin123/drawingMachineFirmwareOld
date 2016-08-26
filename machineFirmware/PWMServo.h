@@ -11,8 +11,9 @@ class PWMServo
 {
   public:
     PWMServo();
-    void attach(int);
-    void writeMicroseconds(int);
+    void attach(int servoPin);
+    void attach (int servoPin, int microSeconds);
+    void writeMicroseconds(int microSeconds);
 
   private:
     int pin;

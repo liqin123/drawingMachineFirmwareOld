@@ -22,7 +22,14 @@ void PWMServo::attach(int servoPin)
   analogWrite(pin, 1500);
 }
 
-void PWMServo::writeMicroseconds(int micros)
+void PWMServo::attach(int servoPin, int microSeconds)
 {
-  analogWrite(pin, micros);
+  pin = servoPin;
+  pinMode(pin, OUTPUT);
+  analogWrite(pin, microSeconds);
+}
+
+void PWMServo::writeMicroseconds(int microSeconds)
+{
+  analogWrite(pin, microSeconds);
 }
