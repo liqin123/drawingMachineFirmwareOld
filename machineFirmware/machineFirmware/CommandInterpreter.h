@@ -34,10 +34,12 @@ class CommandInterpreter
   public:
     CommandInterpreter();
     ArmCommand interpretCommand(std::vector<String> commandLine);
-    gcodeField splitGcodeField(String command);
-    ArmCommand doG01(std::vector<String> commandLine);
+
+
 
   private:
-
+    ArmCommand doG00(std::vector<String> commandLine);
+    ArmCommand doG01(std::vector<String> commandLine);
+    gcodeField splitGcodeField(String command);
 };
 #endif

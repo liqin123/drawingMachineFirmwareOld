@@ -45,7 +45,15 @@ std::vector<String> DrawingJob::getParsedLine()
   }
 }
 
-void DrawingJob::drawLine(void)
+void DrawingJob::doLine(void)
 {
-
+  CommandInterpreter interpreter;
+  std::vector<String> vs = getParsedLine();
+  ArmCommand armCmd = interpreter.interpretCommand(vs);
+  if(armCmd.commandType != CommandTypes::error)
+  {
+    Serial.println(armCmd.x);
+    Serial.println(armCmd.y);
+    Serial.println(armCmd.z);
+  }
 }

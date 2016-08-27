@@ -77,15 +77,11 @@ void setup(void) {
   c.begin("http://robertpoll.com/client/files/testfile.gcode");
 
   DrawingJob job(c, arm);
-  CommandInterpreter interpreter;
-  while (! job.finished()) {
-    std::vector<String> vs = job.getParsedLine();
-    ArmCommand armCmd = interpreter.interpretCommand(vs);
-    Serial.println(armCmd.x);
-    Serial.println(armCmd.y);
-    Serial.println(armCmd.z);
-
+  while (! job.finished())
+  {
+    job.doLine();
   }
+
   Serial.println("Test Code end");
 
   //Start a SoftAP...?

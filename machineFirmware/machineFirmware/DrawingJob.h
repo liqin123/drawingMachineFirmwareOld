@@ -14,8 +14,7 @@ class DrawingJob
     DrawingJob(HTTPRangeClient& HTTPSource, DrawingArm& arm);
     DrawingJob(WiFiClient& SocketSource, DrawingArm& arm);
     bool finished();
-    std::vector<String> getParsedLine();
-    void drawLine(void);
+    void doLine(void);
 
   private:
     enum class SourceTypes {http, socket};
@@ -25,5 +24,7 @@ class DrawingJob
 
     HTTPRangeClient* HTTPSource;
     WiFiClient* SocketSource;
+
+    std::vector<String> getParsedLine();
 };
 #endif
