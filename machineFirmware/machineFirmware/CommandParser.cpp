@@ -45,11 +45,11 @@ std::vector<String> CommandParser::splitLine(String line)
   int numberOfFields = 0;
   String field;
   bool lastCharWasntWhitespace = false;
-  
+
   for(int i = 0; i < line.length(); i++)
   {
     char c = line[i];
-    if(!isspace(c))
+    if(!isspace(c))       // TODO deal with quotes
     {
       field += c;
       lastCharWasntWhitespace = true;

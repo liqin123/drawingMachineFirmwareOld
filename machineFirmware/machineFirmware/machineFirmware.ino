@@ -10,6 +10,8 @@
 #include "DrawingArm.h"
 #include "HTTPRangeClient.h"
 #include "CommandParser.h"
+#include "DrawingJob.h"
+#include "CommandInterpreter.h"
 
 String compileTime = __TIME__;
 String compileDate = __DATE__;
@@ -63,22 +65,28 @@ void setup(void) {
 
   arm.home();
 
-  HTTPRangeClient c;
-  c.begin("http://robertpoll.com/client/files/testfile.gcode");
-  CommandParser parser(c);
-  std::vector<String> vs = parser.getCommand();
-  for(String& str : vs)
-  {
-  //String str = vs[0];
-    Serial.println(str);
-  }
-
   if (!wifiManager.autoConnect()) {
     Serial.println("failed to connect and hit timeout");
     //reset and try again, or maybe put it to deep sleep
     ESP.reset();
     delay(1000);
   }
+
+  Serial.println("Test Code begin");
+  HTTPRangeClient c;
+  c.begin("http://robertpoll.com/client/files/testfile.gcode");
+
+  DrawingJob job(c, arm);
+  CommandInterpreter interpreter;
+  while (! job.finished()) {
+    std::vector<String> vs = job.getParsedLine();
+    ArmCommand armCmd = interpreter.interpretCommand(vs);
+    Serial.println(armCmd.x);
+    Serial.println(armCmd.y);
+    Serial.println(armCmd.z);
+
+  }
+  Serial.println("Test Code end");
 
   //Start a SoftAP...?
      WiFi.softAP(APssid, APpassword);

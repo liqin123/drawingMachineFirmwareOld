@@ -207,7 +207,7 @@ char HTTPRangeClient::getChar()
     if(bufContains[currentBuffer] == (numberOfChunks - 1))            // finished last chunk
     {
       state = HTTPState::eof;
-      Serial.printf("\nFinished last chunk: %d\n", numberOfChunks);
+      //Serial.printf("\nFinished last chunk: %d\n", numberOfChunks);
       return 0;
     }
     bufferState[currentBuffer] = empty;
