@@ -68,21 +68,24 @@ void setup(void) {
   if (!wifiManager.autoConnect()) {
     Serial.println("failed to connect and hit timeout");
     //reset and try again, or maybe put it to deep sleep
-    ESP.reset();
+    //ESP.reset();
     delay(1000);
   }
 
   Serial.println("Test Code begin");
   HTTPRangeClient c;
-  c.begin("http://robertpoll.com/client/files/testfile.gcode");
-
-  DrawingJob job(c, arm);
-  while (! job.finished())
+  if(c.begin("http://robertpoll.com/client/files/testfile.gcode"))
   {
-    job.doLine();
+    DrawingJob job(c, arm);
+    while (! job.finished())
+    {
+      job.doLine();
+    }
+
+    Serial.println("Test Code end");
   }
 
-  Serial.println("Test Code end");
+
 
   //Start a SoftAP...?
      WiFi.softAP(APssid, APpassword);
@@ -177,8 +180,8 @@ void loop(void) {
         Num = req.indexOf('x');// has to be an x
         if (Num > 0)
         {
-          Serial.print("Received: ");
-          Serial.println(req);
+          //Serial.print("Received: ");
+          //Serial.println(req);
           parseString(req, Num);
 
           arm.draw(xValue, yValue, zValue);
@@ -312,6 +315,30 @@ void doGesture(int gesture)
       drawCircle(1000, 700, 300, 100, 2, 1000);
       drawCircle(1000, 700, 300, 100, 2, 1000);
       break;
+
+    case 2 :
+      arm.home();
+      drawCircle(1000, 0, 300, 300, 2, 150);
+      break;
+
+    case 3 :
+    arm.draw(400, -1000, 800);
+    //arm.draw(400, 1000, 150);
+    for(int i = 400; i <= 1800; i += 200)
+    {
+      arm.draw(i, -1000, 150);
+      arm.draw(i, 1000, 150);
+      arm.draw(i, 1000, 800);
+    }
+    arm.draw(1800, 1000, 800);
+    //arm.draw(400, 1000, 150);
+    for(int i = 1000; i >= -1000; i -= 200)
+    {
+      arm.draw(1800, i, 150);
+      arm.draw(400, i, 150);
+      arm.draw(400, i, 800);
+    }
+    break;
 
     case 5 :
       gestureWave(2);

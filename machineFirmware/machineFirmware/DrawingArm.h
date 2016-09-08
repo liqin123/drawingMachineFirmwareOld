@@ -39,13 +39,13 @@ class DrawingArm
 {
   public:
     DrawingArm();
-    void attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin);
-    void fastMove(float x, float y, float z);
-    void move(float x, float y, float z, int stepSize);
-    void draw(float x, float y, float z);
-    unsigned long isMoveDone(bool block);
+    void attach(const uint8_t& shoulderServoPin, const uint8_t& elbowServoPin, const uint8_t& penServoPin);
+    void fastMove(const float& x, const float& y, const float& z);
+    void move(const float& x, const float& y, const float& z, const int& stepSize);
+    void draw(const float& x, const float& y, const float& z);
+    unsigned long isMoveDone(const bool& block);
     void home();
-    void pen(float z);
+    void pen(const float& z);
 
   private:
     servoMicroseconds_t servoMinMicroseconds;
@@ -57,8 +57,8 @@ class DrawingArm
     servoAngles_t servoMoveRates;
     servoMicroseconds_t servoMicrosecondsMoveRate;
     uint8_t minimumMoveTime;
-    uint8_t penUpSpeed;
-    uint8_t defaultSpeed;
+    float penUpSpeed;
+    float defaultSpeed;
 
     int armLength;
     coordinate_t homePosition;
@@ -76,13 +76,13 @@ class DrawingArm
     unsigned long lastMoveTime;
     unsigned long moveCompleteTime;
 
-    servoAngles_t positionToAngles(coordinate_t position);
-    servoMicroseconds_t anglesToMicroseconds(servoAngles_t angles);
-    coordinate_t checkReach(coordinate_t position, uint8_t &limitReached);
-    servoAngles_t checkAngles(servoAngles_t servoAngles, uint8_t &limitReached);
-    void writeToServos(servoMicroseconds_t servoMicroseconds);
-    unsigned long calculateMoveTime(servoMicroseconds_t servoMicroseconds);
-    float distance(coordinate_t point1, coordinate_t point2);
+    servoAngles_t positionToAngles(const coordinate_t& position);
+    servoMicroseconds_t anglesToMicroseconds(const servoAngles_t& angles);
+    coordinate_t checkReach(const coordinate_t& position, uint8_t &limitReached);
+    servoAngles_t checkAngles(const servoAngles_t& servoAngles, uint8_t &limitReached);
+    void writeToServos(const servoMicroseconds_t& servoMicroseconds);
+    unsigned long calculateMoveTime(const servoMicroseconds_t& servoMicroseconds);
+    float distance(const coordinate_t& point1, const coordinate_t& point2);
 
 };
 

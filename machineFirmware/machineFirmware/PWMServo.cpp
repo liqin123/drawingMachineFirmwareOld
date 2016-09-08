@@ -15,21 +15,21 @@ PWMServo::PWMServo()
   }
 }
 
-void PWMServo::attach(int servoPin)
+void PWMServo::attach(const int& servoPin)
 {
   pin = servoPin;
   pinMode(pin, OUTPUT);
   analogWrite(pin, 1500);
 }
 
-void PWMServo::attach(int servoPin, int microSeconds)
+void PWMServo::attach(const int& servoPin, const int& microSeconds)
 {
   pin = servoPin;
   pinMode(pin, OUTPUT);
   analogWrite(pin, microSeconds);
 }
 
-void PWMServo::writeMicroseconds(int microSeconds)
+void PWMServo::writeMicroseconds(const int& microSeconds)
 {
   analogWrite(pin, microSeconds);
 }

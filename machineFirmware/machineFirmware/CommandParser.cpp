@@ -10,7 +10,7 @@ CommandParser::CommandParser(HTTPRangeClient& source)
 
 }
 
-std::vector<String> CommandParser::getCommand()
+std::vector<String> CommandParser::getCommand(void)
 {
   return splitLine(getLine());
 }
@@ -39,7 +39,7 @@ String CommandParser::getLine(void)
   return line;
 }
 
-std::vector<String> CommandParser::splitLine(String line)
+std::vector<String> CommandParser::splitLine(const String& line)
 {
   std::vector<String> lineFields;
   int numberOfFields = 0;

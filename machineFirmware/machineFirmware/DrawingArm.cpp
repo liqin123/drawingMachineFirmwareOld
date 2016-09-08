@@ -35,7 +35,7 @@ DrawingArm::DrawingArm()
   servoMicrosecondsPerDegree.pen = (servoMaxMicroseconds.pen - servoMinMicroseconds.pen) / (servoMaxAngles.pen - servoMinAngles.pen);
 }
 
-void DrawingArm::attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t penServoPin)
+void DrawingArm::attach(const uint8_t& shoulderServoPin, const uint8_t& elbowServoPin, const uint8_t& penServoPin)
 {
   penServo.attach(penServoPin);
   penServo.writeMicroseconds(servoMaxMicroseconds.pen);
@@ -45,7 +45,7 @@ void DrawingArm::attach(uint8_t shoulderServoPin, uint8_t elbowServoPin, uint8_t
   lastPosition = homePosition;
 }
 
-void DrawingArm::fastMove(float x, float y, float z)
+void DrawingArm::fastMove(const float& x, const float& y, const float& z)
 {
   coordinate_t pos = {x, y, z};
 
@@ -54,20 +54,40 @@ void DrawingArm::fastMove(float x, float y, float z)
   pos = checkReach(pos, limitReached);
   if(limitReached)
   {
-    //Serial.print("Reach limit: ");
-    //Serial.println(limitReached);
+    Serial.print("Reach limit: ");
+    Serial.println(limitReached);
   }
 
   // compute arm angles and check
   servoAngles_t angles = positionToAngles(pos);
+  Serial.print(x);
+  Serial.print(",");
+  Serial.print(y);
+  Serial.print(",");
+  Serial.print(angles.shoulder);
+  Serial.print(",");
+  Serial.print(angles.elbow);
+  Serial.print(",");
+  //Serial.print(pos.x);
+  //Serial.print(",");
+  //Serial.print(pos.y);
+  //Serial.print(",");
+
   angles = checkAngles(angles, limitReached);
   if(limitReached)
   {
-    //Serial.print("Angles limit: ");
-    //Serial.println(limitReached);
+    Serial.print("Angles limit: ");
+    Serial.println(limitReached);
   }
+  //Serial.print(angles.shoulder);
+  //Serial.print(",");
+  //Serial.println(angles.elbow);
 
   servoMicroseconds_t micros = anglesToMicroseconds(angles);
+  Serial.print(micros.shoulder);
+  Serial.print(",");
+  Serial.println(micros.elbow);
+  //Serial.print(",");
   writeToServos(micros);
 
   lastPosition = pos;
@@ -75,12 +95,12 @@ void DrawingArm::fastMove(float x, float y, float z)
   lastServoMicroseconds = micros;
 }
 
-void DrawingArm::move(float x, float y, float z, int stepSize)
+void DrawingArm::move(const float& x, const float& y, const float& z, const int& stepSize)
 {
    coordinate_t pos = {x, y, z};
 
   float distanceMoved = distance(lastPosition, pos);
-  uint8_t steps = int(distanceMoved/stepSize + 0.5);
+  long steps = int(distanceMoved/stepSize + 0.5);
   //Serial.println(steps);
   if(steps <= 1)
   {
@@ -97,7 +117,7 @@ void DrawingArm::move(float x, float y, float z, int stepSize)
   }
 }
 
-void DrawingArm::draw(float x, float y, float z)
+void DrawingArm::draw(const float& x, const float& y, const float& z)
 {
   float smallDistance = 1;
 
@@ -131,7 +151,7 @@ void DrawingArm::draw(float x, float y, float z)
   move(pos.x, pos.y, pos.z, defaultSpeed);
 }
 
-servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
+servoAngles_t DrawingArm::positionToAngles(const coordinate_t& position)
 {
   float a1;       //radians
   float a2;       //radians
@@ -164,7 +184,7 @@ servoAngles_t DrawingArm::positionToAngles(coordinate_t position)
   return servoAngles;
 }
 
-servoMicroseconds_t DrawingArm::anglesToMicroseconds(servoAngles_t angles)
+servoMicroseconds_t DrawingArm::anglesToMicroseconds(const servoAngles_t& angles)
 {
   servoMicroseconds_t micros;
 
@@ -175,7 +195,7 @@ servoMicroseconds_t DrawingArm::anglesToMicroseconds(servoAngles_t angles)
   return micros;
 }
 
-coordinate_t DrawingArm::checkReach(coordinate_t position, uint8_t &limitReached)
+coordinate_t DrawingArm::checkReach(const coordinate_t& position, uint8_t &limitReached)
 {
   coordinate_t modifiedPosition = position;
 
@@ -197,7 +217,7 @@ coordinate_t DrawingArm::checkReach(coordinate_t position, uint8_t &limitReached
   return modifiedPosition;
 }
 
-servoAngles_t DrawingArm::checkAngles(servoAngles_t servoAngles, uint8_t &limitReached)
+servoAngles_t DrawingArm::checkAngles(const servoAngles_t& servoAngles, uint8_t &limitReached)
 {
   servoAngles_t modifiedAngles = servoAngles;
 
@@ -226,7 +246,7 @@ servoAngles_t DrawingArm::checkAngles(servoAngles_t servoAngles, uint8_t &limitR
   return modifiedAngles;
 }
 
-void DrawingArm::writeToServos(servoMicroseconds_t micros)
+void DrawingArm::writeToServos(const servoMicroseconds_t& micros)
 {
   isMoveDone(true);                                   // wait for previous move
   shoulderServo.writeMicroseconds(micros.shoulder);
@@ -245,12 +265,12 @@ void DrawingArm::home()
   move(homePosition.x, homePosition.y, homePosition.z, penUpSpeed);
 }
 
-void DrawingArm::pen(float z)
+void DrawingArm::pen(const float& z)
 {
   fastMove(lastPosition.x, lastPosition.y, z);
 }
 
-unsigned long DrawingArm::isMoveDone(bool block)
+unsigned long DrawingArm::isMoveDone(const bool& block)
 {
   unsigned long now = millis();
   unsigned long timeRemaining;
@@ -270,7 +290,7 @@ unsigned long DrawingArm::isMoveDone(bool block)
   }
 }
 
-unsigned long DrawingArm::calculateMoveTime(servoMicroseconds_t servoMicroseconds)
+unsigned long DrawingArm::calculateMoveTime(const servoMicroseconds_t& servoMicroseconds)
 {
   unsigned long shoulderTime = 1000 * abs((lastServoMicroseconds.shoulder - servoMicroseconds.shoulder)) / servoMicrosecondsMoveRate.shoulder;
   unsigned long elbowTime = 1000 * abs((lastServoMicroseconds.elbow - servoMicroseconds.elbow)) / servoMicrosecondsMoveRate.elbow;
@@ -280,7 +300,7 @@ unsigned long DrawingArm::calculateMoveTime(servoMicroseconds_t servoMicrosecond
   return moveTime;
 }
 
-float DrawingArm::distance(coordinate_t point1, coordinate_t point2)
+float DrawingArm::distance(const coordinate_t& point1, const coordinate_t& point2)
 {
   return sqrt(sq(point1.x - point2.x) + sq(point1.y - point2.y));
 }

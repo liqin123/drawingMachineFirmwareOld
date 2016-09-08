@@ -9,7 +9,7 @@ HTTPRangeClient::HTTPRangeClient()
   state = HTTPState::disconnected;
   bufferSize = 2048;
   maxRetries = 5;
-  retryDelay = 100;
+  retryDelay = 500;
 }
 
 /*
@@ -48,7 +48,7 @@ bool HTTPRangeClient::begin(String urlName)
       break;
     }
     Serial.printf("\n===>Connect got %d, retrying(%d)\n", httpCode, retryCount);
-    delay(retryDelay * 2 ^ retryCount);
+    delay(retryDelay * pow(2, retryCount));
   }
 
   if(!success)

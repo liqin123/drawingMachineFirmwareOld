@@ -11,13 +11,13 @@ class CommandParser
 {
 public:
   CommandParser(HTTPRangeClient& source);
-  std::vector<String> getCommand();
+  std::vector<String> getCommand(void);
 
   private:
   HTTPRangeClient* source;
 
   String getLine(void);
-  std::vector<String> splitLine(String line);
+  std::vector<String> splitLine(const String& line);
 
 };
 #endif

@@ -22,7 +22,7 @@ sourceType{SourceTypes::socket}
   //TODO get a commandparser once it supports sockets
 }
 
-bool DrawingJob::finished()
+bool DrawingJob::finished(void)
 {
   switch(sourceType)
   {
@@ -34,7 +34,7 @@ bool DrawingJob::finished()
   }
 }
 
-std::vector<String> DrawingJob::getParsedLine()
+std::vector<String> DrawingJob::getParsedLine(void)
 {
   switch(sourceType)
   {

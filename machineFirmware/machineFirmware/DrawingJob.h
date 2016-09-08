@@ -13,7 +13,7 @@ class DrawingJob
   public:
     DrawingJob(HTTPRangeClient& HTTPSource, DrawingArm& arm);
     DrawingJob(WiFiClient& SocketSource, DrawingArm& arm);
-    bool finished();
+    bool finished(void);
     void doLine(void);
 
   private:
@@ -25,6 +25,6 @@ class DrawingJob
     HTTPRangeClient* HTTPSource;
     WiFiClient* SocketSource;
 
-    std::vector<String> getParsedLine();
+    std::vector<String> getParsedLine(void);
 };
 #endif
