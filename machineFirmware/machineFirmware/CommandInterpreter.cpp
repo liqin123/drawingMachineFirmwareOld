@@ -10,7 +10,7 @@ CommandInterpreter::CommandInterpreter()
 
 }
 
-ArmCommand CommandInterpreter::interpretCommand(const std::vector<String>& commandLine)
+ArmCommand CommandInterpreter::interpretCommand(const vector<String>& commandLine)
 {
   gcodeField command = splitGcodeField(commandLine[0]);
   ArmCommand armCmd;
@@ -39,7 +39,7 @@ gcodeField CommandInterpreter::splitGcodeField(const String& command)
   return field;
 }
 
-ArmCommand CommandInterpreter::doG00(std::vector<String> commandLine)
+ArmCommand CommandInterpreter::doG00(vector<String> commandLine)
 {
   ArmCommand armCmd;
   armCmd.commandType = CommandTypes::fast;
@@ -70,7 +70,7 @@ ArmCommand CommandInterpreter::doG00(std::vector<String> commandLine)
   return armCmd;
 }
 
-ArmCommand CommandInterpreter::doG01(std::vector<String> commandLine)
+ArmCommand CommandInterpreter::doG01(vector<String> commandLine)
 {
   ArmCommand armCmd;
   armCmd.commandType = CommandTypes::line;

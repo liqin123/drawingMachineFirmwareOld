@@ -7,6 +7,8 @@
 #include "DrawingArm.h"
 #include <vector>
 
+using namespace std;
+
 enum class CommandTypes {fast, line, gesture, firmare, home, setting, factoryReset, error};
 struct ArmCommand
 {
@@ -33,11 +35,11 @@ class CommandInterpreter
 {
   public:
     CommandInterpreter();
-    ArmCommand interpretCommand(const std::vector<String>& commandLine);
+    ArmCommand interpretCommand(const vector<String>& commandLine);
 
   private:
-    ArmCommand doG00(std::vector<String> commandLine);
-    ArmCommand doG01(std::vector<String> commandLine);
+    ArmCommand doG00(vector<String> commandLine);
+    ArmCommand doG01(vector<String> commandLine);
     gcodeField splitGcodeField(const String& command);
 };
 #endif
