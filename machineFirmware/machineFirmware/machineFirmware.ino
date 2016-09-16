@@ -72,18 +72,18 @@ void setup(void) {
     delay(1000);
   }
 
-  Serial.println("Test Code begin");
-  HTTPRangeClient c;
-  if(c.begin("http://robertpoll.com/client/files/testfile.gcode"))
-  {
-    DrawingJob job(c, arm);
-    while (! job.finished())
-    {
-      job.doLine();
-    }
-
-    Serial.println("Test Code end");
-  }
+  // Serial.println("Test Code begin");
+  // HTTPRangeClient c;
+  // if(c.begin("http://robertpoll.com/client/files/testfile.gcode"))
+  // {
+  //   DrawingJob job(c, arm);
+  //   while (! job.finished())
+  //   {
+  //     job.doLine();
+  //   }
+  //
+  //   Serial.println("Test Code end");
+  // }
 
 
 
