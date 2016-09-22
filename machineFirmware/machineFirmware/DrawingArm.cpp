@@ -7,7 +7,7 @@
 DrawingArm::DrawingArm()
 {
   armLength = 1000;
-  homePosition = {1414, 0, 1000};
+  homePosition = {1000, 1000, 800};
   servoMinMicroseconds = {710, 710, 700};     //MG90D for arms, MG90S for pen
   servoMaxMicroseconds = {2290, 2290, 2400};
   servoMinAngles = {13, 13, 4};

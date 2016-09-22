@@ -26,12 +26,6 @@ IPAddress apIP(192, 168, 4, 1);
 const char *APssid = "drawingMachine";
 const char *APpassword = "";
 
-const int RED_LED_PIN = 13;
-const int GREEN_LED_PIN = 14;
-const int BLUE_LED_PIN = 16;
-
-int led_colour = 0;
-
 const int SWITCH_PIN = 0;
 
 const int shoulderServoPin = 4;
@@ -72,6 +66,16 @@ void setup(void) {
     delay(1000);
   }
 
+  //Start mDNS
+  if (!MDNS.begin("esp8266")) {
+    Serial.println("Error setting up MDNS responder!");
+  }
+
+  // Start TCP server.
+  server.begin();
+
+  MDNS.addService("drawing", "tcp", 1337);
+
   // Serial.println("Test Code begin");
   // HTTPRangeClient c;
   // if(c.begin("http://robertpoll.com/client/files/testfile.gcode"))
@@ -85,25 +89,17 @@ void setup(void) {
   //   Serial.println("Test Code end");
   // }
 
-
-
   //Start a SoftAP...?
-     WiFi.softAP(APssid, APpassword);
-     IPAddress myIP = WiFi.softAPIP();
-     //Start a proper DNS server as mDNS doesn't work in AP mode.
-     dnsServer.setTTL(300);
-     dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
-     dnsServer.start(DNS_PORT, "esp8266", apIP);
+  WiFi.softAP(APssid, APpassword);
+  IPAddress myIP = WiFi.softAPIP();
+  //Start a proper DNS server as mDNS doesn't work in AP mode.
+  dnsServer.setTTL(300);
+  dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
+  dnsServer.start(DNS_PORT, "esp8266", apIP);
 
-  //  //Start mDNS
-  if (!MDNS.begin("esp8266")) {
-    Serial.println("Error setting up MDNS responder!");
-  }
-
-  MDNS.addService("drawing", "tcp", 1337);
-  // Start TCP server.
-  server.begin();
   socketPolicyServer.begin();
+  Serial.println("Ready for connections");
+  doGesture(1);
 
   if(checkAbortFlag())
   {
@@ -131,8 +127,6 @@ void setup(void) {
 
 void loop(void) {
 
-  // Check if module is still connected to WiFi.
-  //keepConnected();
   dnsServer.processNextRequest();
   WiFiClient socketPolicyClient = socketPolicyServer.available();
   if(socketPolicyClient)
@@ -155,6 +149,7 @@ void loop(void) {
     client.print(" ");
     client.println(compileTime);
     dnsServer.processNextRequest();
+    gestureWave(1);
     while (client.connected())
     {
       dnsServer.processNextRequest();
@@ -213,6 +208,7 @@ void loop(void) {
     }
     // Client has disconnected
     Serial.println("Client disconnected.");
+    gestureWave(2);
     client.stop();
     arm.home();
   }
@@ -311,9 +307,9 @@ void doGesture(int gesture)
   switch (gesture)
   {
     case 1 :
-      drawCircle(1000, 700, 300, 100, 2, 1000);
-      drawCircle(1000, 700, 300, 100, 2, 1000);
-      drawCircle(1000, 700, 300, 100, 2, 1000);
+      drawCircle(1000, 700, 300, 100, .4, 800);
+      //drawCircle(1000, 700, 300, 100, 2, 1000);
+      //drawCircle(1000, 700, 300, 100, 2, 1000);
       break;
 
     case 2 :
@@ -437,8 +433,8 @@ int gestureWave(int howMany)
 {
   for (int i = 0; i < howMany; i++)
   {
-    drawArc(0, 0, 1300, -30, 30, 100, .4, 1000);
-    drawArc(0, 0, 1300, 30, -30, 100, .4, 1000);
+    drawArc(0, 0, 1414, 45, 65, 50, .1, 800);
+    drawArc(0, 0, 1414, 65, 45, 50, .1, 800);
   }
 }
 
