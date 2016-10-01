@@ -12,7 +12,7 @@ DrawingArm::DrawingArm()
   servoMaxMicroseconds = {2290, 2290, 2400};
   servoMinAngles = {13, 13, 4};
   servoMaxAngles = {167, 167, 176};
-  servoDeadbandMicroseconds = {2, 2, 2};
+  //servoDeadbandMicroseconds = {2, 2, 2};
   minimumMoveTime = 4;                          // milliseconds
   servoMoveRates = {500, 500, 500};              // degrees per second. Datasheet says 600, but seems a bit fast.
   penUpSpeed = 15;
@@ -54,40 +54,40 @@ void DrawingArm::fastMove(const float& x, const float& y, const float& z)
   pos = checkReach(pos, limitReached);
   if(limitReached)
   {
-    Serial.print("Reach limit: ");
-    Serial.println(limitReached);
+    //Serial.print("Reach limit: ");
+    //Serial.println(limitReached);
   }
 
   // compute arm angles and check
   servoAngles_t angles = positionToAngles(pos);
-  Serial.print(x);
-  Serial.print(",");
-  Serial.print(y);
-  Serial.print(",");
-  Serial.print(angles.shoulder);
-  Serial.print(",");
-  Serial.print(angles.elbow);
-  Serial.print(",");
-  //Serial.print(pos.x);
+  //Serial.print(x);
   //Serial.print(",");
-  //Serial.print(pos.y);
+  //Serial.print(y);
   //Serial.print(",");
+  //Serial.print(angles.shoulder);
+  //Serial.print(",");
+  //Serial.print(angles.elbow);
+  //Serial.print(",");
+  ////Serial.print(pos.x);
+  ////Serial.print(",");
+  ////Serial.print(pos.y);
+  ////Serial.print(",");
 
   angles = checkAngles(angles, limitReached);
   if(limitReached)
   {
-    Serial.print("Angles limit: ");
-    Serial.println(limitReached);
+    //Serial.print("Angles limit: ");
+    //Serial.println(limitReached);
   }
-  //Serial.print(angles.shoulder);
-  //Serial.print(",");
-  //Serial.println(angles.elbow);
+  ////Serial.print(angles.shoulder);
+  ////Serial.print(",");
+  ////Serial.println(angles.elbow);
 
   servoMicroseconds_t micros = anglesToMicroseconds(angles);
-  Serial.print(micros.shoulder);
-  Serial.print(",");
-  Serial.println(micros.elbow);
+  //Serial.print(micros.shoulder);
   //Serial.print(",");
+  //Serial.println(micros.elbow);
+  ////Serial.print(",");
   writeToServos(micros);
 
   lastPosition = pos;
@@ -101,7 +101,7 @@ void DrawingArm::move(const float& x, const float& y, const float& z, const int&
 
   float distanceMoved = distance(lastPosition, pos);
   long steps = int(distanceMoved/stepSize + 0.5);
-  //Serial.println(steps);
+  ////Serial.println(steps);
   if(steps <= 1)
   {
     fastMove(x, y, z);
@@ -126,7 +126,7 @@ void DrawingArm::draw(const float& x, const float& y, const float& z)
   if(lastPosition.z > 500 && pos.z < 500 && distance(lastPosition, pos) > smallDistance)
   {
     //pen down and move, so move, then pen down
-    //Serial.print(" Pen down and move ");
+    ////Serial.print(" Pen down and move ");
     move(pos.x, pos.y, lastPosition.z, penUpSpeed);
     move(pos.x, pos.y, pos.z, penUpSpeed);
     return;
@@ -135,7 +135,7 @@ void DrawingArm::draw(const float& x, const float& y, const float& z)
   if(lastPosition.z < 500 && pos.z > 500 && distance(lastPosition, pos) > smallDistance)
   {
     //pen up and move, so pen up, then move
-    //Serial.print(" Pen up and move ");
+    ////Serial.print(" Pen up and move ");
     move(lastPosition.x, lastPosition.y, pos.z, penUpSpeed);
     move(pos.x, pos.y, pos.z, penUpSpeed);
     return;
@@ -144,7 +144,7 @@ void DrawingArm::draw(const float& x, const float& y, const float& z)
   if(lastPosition.z > 500 && pos.z > 500)
   {
     // pen up move
-    //Serial.print(" Pen up move ");
+    ////Serial.print(" Pen up move ");
     move(pos.x, pos.y, pos.z, penUpSpeed);
     return;
   }

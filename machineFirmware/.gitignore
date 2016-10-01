@@ -7,3 +7,4 @@
 #.pioenvs/.sconsign.dblite
 #.pioenvs/do*
 #.pioenvs/structure.hash
+.piolibdeps

@@ -144,15 +144,17 @@ void loop(void) {
 
   if (client) {
     Serial.println("Client connected.");
-    client.print("This version complied: ");
+    client.print("HELLO (This version complied: ");
     client.print(compileDate);
     client.print(" ");
-    client.println(compileTime);
+    client.print(compileTime);
+    client.println(')');
     dnsServer.processNextRequest();
     gestureWave(1);
     while (client.connected())
     {
       dnsServer.processNextRequest();
+      checkAndRejectNewConnections();
 
       if (digitalRead(SWITCH_PIN) == LOW)
       {
@@ -160,7 +162,6 @@ void loop(void) {
                 wifiManager.resetSettings();
       }
       String req = client.readStringUntil(';');
-
       if (client.available() )
       {
         if (req[0] == 0)
@@ -190,10 +191,10 @@ void loop(void) {
           int gestureValue = req.substring(0, gCmd).toInt();
           if(gestureValue == 30)
           {
-            char c[] = "OK";
-            client.write((char *) &c, 3);
+            //char c[] = "OK";
+            //client.write((char *) &c, 3);
           } else {
-            doGesture(gestureValue);
+            doGesture(gestureValue, client);
           }
           lineDone = true;
         }
@@ -204,6 +205,8 @@ void loop(void) {
           Serial.println("Just do Z");
           arm.pen(zValue);
         }
+        char c[] = "OK";
+        client.write((char *) &c, 3);
       }
     }
     // Client has disconnected
@@ -211,6 +214,17 @@ void loop(void) {
     gestureWave(2);
     client.stop();
     arm.home();
+  }
+}
+
+void checkAndRejectNewConnections()
+{
+  WiFiClient client = server.available();
+
+  if (client) {
+    Serial.println("Client connected while busy");
+    client.println("BUSY");
+    client.stop();
   }
 }
 
@@ -303,6 +317,12 @@ int incrementAutoDraw()
 }
 
 void doGesture(int gesture)
+{
+  WiFiClient client;
+  doGesture(gesture, client); //dummy wificlient hack
+}
+
+void doGesture(int gesture, WiFiClient client)
 {
   switch (gesture)
   {
@@ -405,6 +425,7 @@ void doGesture(int gesture)
 
     case 99 :
       Serial.println("Updating firmware...");
+      client.println("Updating firmware...");
       ESPhttpUpdate.update("www.robertpoll.com", 80, "/client/files/firmware.bin");
       Serial.println("Firmware update failed.");
       break;
