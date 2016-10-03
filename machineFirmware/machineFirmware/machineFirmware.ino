@@ -144,17 +144,18 @@ void loop(void) {
 
   if (client) {
     Serial.println("Client connected.");
-    client.print("HELLO (This version complied: ");
+    //client.print("HELLO (This version complied: ");
+    client.print("This version complied: ");
     client.print(compileDate);
     client.print(" ");
-    client.print(compileTime);
-    client.println(')');
+    client.println(compileTime);
+    //client.println(')');
     dnsServer.processNextRequest();
     gestureWave(1);
     while (client.connected())
     {
       dnsServer.processNextRequest();
-      checkAndRejectNewConnections();
+      //checkAndRejectNewConnections();
 
       if (digitalRead(SWITCH_PIN) == LOW)
       {
